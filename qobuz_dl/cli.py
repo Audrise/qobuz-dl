@@ -21,9 +21,17 @@ from qobuz_dl.constants import DEFAULT_VARIOUS_ARTISTS_ALIASES
 from qobuz_dl.settings import QobuzDLSettings
 from qobuz_dl.utils import read_config_file
 
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
+    stream=sys.stdout,
 )
 
 CONFIG_DIR = os.environ.get("CONFIG_DIR")
@@ -377,11 +385,17 @@ def main():
     Orchestrates configuration parsing, update checks, and routes standalone 
     modules (Radar, Stats, Retro Lyrics) before initializing the main core application.
     """
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
     _initial_checks()
     check_for_updates()
 
     # --- RADAR FEATURE (Standalone Intercept) ---
-    import sys
     if len(sys.argv) > 1 and sys.argv[1] == "radar":
         from qobuz_dl.radar import run_radar
         
@@ -392,11 +406,11 @@ def main():
         sys.exit(0)
     # --------------------------------------------
 
-    # --- NEW: STATS COMMAND INTEGRATION ---
+    # --- STATS COMMAND INTEGRATION ---
     if len(sys.argv) > 1 and sys.argv[1] == "stats":
         from qobuz_dl.db import get_stats
         
-        # QOBUZ_DB è già definito all'inizio di cli.py, lo usiamo direttamente
+        # QOBUZ_DB is already defined at module level
         artists = get_stats(QOBUZ_DB)
         
         print(f"\n{CYAN}--- QOBUZ-DL ULTIMATE STATISTICS ---{OFF}")
@@ -407,7 +421,7 @@ def main():
             for artist in artists:
                 print(f" - {artist}")
         print(f"{CYAN}-------------------------------------{OFF}\n")
-        sys.exit(0) # Esce immediatamente dopo aver stampato le statistiche
+        sys.exit(0) # Exit immediately after printing stats
     # -------------------------------------------------
 
     config = configparser.ConfigParser(interpolation=None)
@@ -418,7 +432,7 @@ def main():
         
         email = config.get(section, "email")
         
-        # --- INIZIO PATCH KEYRING BYPASS ---
+        # --- KEYRING BYPASS PATCH ---
         ini_token = config.get(section, "auth_token", fallback="")
         ini_genius = config.get(section, "genius_token", fallback="")
         disable_keyring = str(config.get(section, "disable_keyring", fallback="false")).strip().lower() in ['true', 'yes', 'y', '1']
@@ -445,7 +459,7 @@ def main():
                         config.write(f)
                 except OSError:
                     pass
-        # --- FINE PATCH KEYRING BYPASS ---
+        # --- KEYRING BYPASS PATCH ---
 
         fetch_lyrics = config.getboolean(section, "fetch_lyrics", fallback=False)
 
