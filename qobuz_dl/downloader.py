@@ -242,6 +242,9 @@ class Download:
         playlist_track_number: int = None, 
         booklet_only: bool = False,
         playlist_as_albums: bool = False,
+        album_tag_format: str = "",
+        date_tag_format: str = "",
+        genre_tag_format: str = "",
     ):
         """
         Initializes the Download class.
@@ -294,6 +297,10 @@ class Download:
         self.is_playlist = is_playlist                       
         self.playlist_track_number = playlist_track_number
         self.playlist_as_albums = playlist_as_albums
+        
+        self.album_tag_format = album_tag_format
+        self.date_tag_format = date_tag_format
+        self.genre_tag_format = genre_tag_format
         
         self._original_folder_format = folder_format or DEFAULT_FOLDER
         self._original_track_format = track_format or DEFAULT_TRACK
@@ -717,6 +724,22 @@ class Download:
             track_metadata,
             album_or_track_metadata.get("album", {}) if is_track else album_or_track_metadata
         )
+        
+        from qobuz_dl.utils import PartialFormatter
+        fmt = PartialFormatter(missing="", bad_fmt="")
+        custom_tags = {}
+        
+        album_fmt = getattr(self, 'album_tag_format', "")
+        if album_fmt:
+            custom_tags["ALBUM"] = fmt.format(album_fmt, **filename_attr).strip()
+            
+        date_fmt = getattr(self, 'date_tag_format', "")
+        if date_fmt:
+            custom_tags["DATE"] = fmt.format(date_fmt, **filename_attr).strip()
+            
+        genre_fmt = getattr(self, 'genre_tag_format', "")
+        if genre_fmt:
+            custom_tags["GENRE"] = fmt.format(genre_fmt, **filename_attr).strip()
 
         # --- FIX MARROBHD & SYNC-PLAYLIST: CLEAN PLAYLIST NAMING ---
         legacy_flag = getattr(self.settings, 'legacy_charmap', False) if hasattr(self, 'settings') else False
@@ -852,6 +875,7 @@ class Download:
             tag_function(
                 filename, root_dir, final_file, track_metadata,
                 album_or_track_metadata, is_track, self.embed_art, settings=self.settings,
+                custom_tags=custom_tags
             )
         except Exception as e:
             safe_print(f"{RED}[!] Error tagging: {e}{OFF}")
@@ -905,6 +929,8 @@ class Download:
             "album_title":  _get_title(album_metadata),
             "album_title_base": album_metadata.get("title"),
             "album_artist": album_artist_str,
+            "album_genre": album_metadata.get("genre", {}).get("name", ""),
+            "primary_genre": re.split(r'[;/]', album_metadata.get("genre", {}).get("name", "") or "")[0].strip(),
             "track_id": track_metadata.get("id"),
             "track_artist": track_artist,
             "track_composer": _safe_get(track_metadata,"composer", "name"),

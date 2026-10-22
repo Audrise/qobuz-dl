@@ -90,6 +90,9 @@ class QobuzDL:
         booklet_only: bool = False,
         blacklist=None,
         playlist_as_albums: bool = False,
+        album_tag_format: str = "",
+        date_tag_format: str = "",
+        genre_tag_format: str = "",
     ):
         """
         Initializes the Core application and parses settings.
@@ -144,6 +147,9 @@ class QobuzDL:
         self.settings = settings or QobuzDLSettings()
         self.booklet_only = booklet_only
         self.playlist_as_albums = playlist_as_albums
+        self.album_tag_format = album_tag_format
+        self.date_tag_format = date_tag_format
+        self.genre_tag_format = genre_tag_format
         
         self.blacklist_patterns = []
         if blacklist and os.path.isfile(blacklist):
@@ -204,6 +210,9 @@ class QobuzDL:
                 playlist_track_number=playlist_index,
                 booklet_only=self.booklet_only,
                 playlist_as_albums=self.playlist_as_albums,
+                album_tag_format=self.album_tag_format,
+                date_tag_format=self.date_tag_format,
+                genre_tag_format=self.genre_tag_format,
             )
             dloader.download_id_by_type(not album)
         except (requests.exceptions.RequestException, NonStreamable) as e:

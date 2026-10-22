@@ -291,7 +291,7 @@ def _embed_id3_img(root_dir, audio: id3.ID3):
 
 
 def tag_flac(
-    filename, root_dir, final_name, d: dict, album, istrack=True, em_image=False, settings: QobuzDLSettings = None
+    filename, root_dir, final_name, d: dict, album, istrack=True, em_image=False, settings: QobuzDLSettings = None, custom_tags: dict = None
 ):
     """
     Applies metadata tags and cover art to a FLAC audio file.
@@ -320,6 +320,9 @@ def tag_flac(
         qobuz_album = album
 
     tags = _get_tags_to_add(qobuz_album, qobuz_item, settings=settings)
+    
+    if custom_tags:
+        tags.update({k: v for k, v in custom_tags.items() if v})
 
     if not settings.no_track_number_tag:
         tags["TRACKNUMBER"] = str(qobuz_item.get("track_number", "1"))
@@ -354,7 +357,7 @@ def tag_flac(
     os.rename(filename, final_name)
 
 
-def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=False, settings: QobuzDLSettings = None):
+def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=False, settings: QobuzDLSettings = None, custom_tags: dict = None):
     """
     Applies ID3 metadata tags and cover art to an MP3 audio file.
 
@@ -384,6 +387,9 @@ def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=Fal
         qobuz_album = album
 
     tags = _get_tags_to_add(qobuz_album, qobuz_item, settings=settings)
+    
+    if custom_tags:
+        tags.update({k: v for k, v in custom_tags.items() if v})
 
     # ID3v2.3 stores the year in TYER and only the day and month (DDMM) in TDAT
     release_date = tags.pop("DATE", "") or ""

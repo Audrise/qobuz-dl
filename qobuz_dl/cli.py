@@ -97,7 +97,7 @@ def validate_config_formats(formats_to_check):
     """
     VALID_KEYS = {
         "artist", "album", "album_id", "album_url", "album_title", 
-        "album_title_base", "album_artist", "album_genre", "album_composer", 
+        "album_title_base", "album_artist", "album_genre", "primary_genre", "album_composer", 
         "label", "copyright", "upc", "barcode", "release_date", "year", 
         "media_type", "format", "bit_depth", "sampling_rate", "album_version", 
         "version_tag", "disc_count", "track_count", "ExplicitFlag", "explicit", 
@@ -236,6 +236,10 @@ def _reset_config(config_file):
     config["qobuz"]["track_format"] = "{track_number} - {track_title}"
     config["qobuz"]["fallback_folder_format"] = "{artist} - {album}"
     config["qobuz"]["smart_discography"] = "false"
+    
+    config["qobuz"]["album_tag_format"] = ""
+    config["qobuz"]["date_tag_format"] = ""
+    config["qobuz"]["genre_tag_format"] = ""
 
     config["qobuz"]["no_album_artist_tag"] = "false"
     config["qobuz"]["no_album_title_tag"] = "false"
@@ -500,6 +504,10 @@ def main():
         smart_discography = config.getboolean(section, "smart_discography", fallback=False)
         folder_format = config.get(section, "folder_format", fallback=DEFAULT_FOLDER)
         track_format = config.get(section, "track_format", fallback=DEFAULT_TRACK)
+        
+        album_tag_format = config.get(section, "album_tag_format", fallback="")
+        date_tag_format = config.get(section, "date_tag_format", fallback="")
+        genre_tag_format = config.get(section, "genre_tag_format", fallback="")
 
         arguments = qobuz_dl_args(
             default_quality, default_limit, default_folder
@@ -625,7 +633,10 @@ def main():
         "folder_format": arguments.folder_format or folder_format,
         "track_format": arguments.track_format or track_format,
         "fallback_folder_format": config.get(section, "fallback_folder_format", fallback="{artist} - {album}"),
-        "multiple_disc_track_format": config.get(section, "multiple_disc_track_format", fallback="{disc_number}.{track_number} - {track_title}")
+        "multiple_disc_track_format": config.get(section, "multiple_disc_track_format", fallback="{disc_number}.{track_number} - {track_title}"), # <-- VIRGOLA AGGIUNTA QUI
+        "album_tag_format": album_tag_format,
+        "date_tag_format": date_tag_format,
+        "genre_tag_format": genre_tag_format
     }
     validate_config_formats(formats_to_validate)
     # -------------------------------
@@ -653,6 +664,9 @@ def main():
         booklet_only=getattr(arguments, 'booklet_only', False),
         blacklist=getattr(arguments, 'blacklist', None) or blacklist_config,
         playlist_as_albums=getattr(arguments, 'playlist_as_albums', False) or playlist_as_albums_config,
+        album_tag_format=album_tag_format,
+        date_tag_format=date_tag_format,
+        genre_tag_format=genre_tag_format,
     )
     
     qobuz.initialize_client(email, password, app_id, secrets)

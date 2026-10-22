@@ -181,6 +181,12 @@ no_conductor_tag = true
 no_ensemble_tag = true
 no_work_tag = true
 
+# Custom tag formatting (leave blank to use default Qobuz tags)
+# Example: isolate the primary genre, keep only the release year, and sync album tags with folder names.
+album_tag_format = {album_title_base}{version_tag}
+date_tag_format = {year}
+genre_tag_format = {primary_genre}
+
 # Album artist names that mark a compilation (tagged COMPILATION=1, RELEASETYPE compilation).
 # Case-insensitive, comma-separated: add the name Qobuz uses in your language
 various_artists_aliases = various artists, various, va, artistes divers, verschiedene interpreten, varios artistas, artisti vari, vari
@@ -382,6 +388,7 @@ You can deeply customize your `config.ini` or use the CLI flags `-ff` (Folder Fo
 | `{release_type}` | Smart release type classification (`Album`, `EP`, `Single`). | `Album` |
 | `{explicit}` / `{ExplicitFlag}`| Adds an `[E]` tag if parental advisory is active (empty if clean). | `[E]` |
 | `{album_genre}` | Primary genre of the release. | `Electronic` |
+| `{primary_genre}`| Extracts only the first main genre before any separators. | `Electronic` |
 | `{label}` | The record label name. | `Columbia` |
 | `{copyright}` | Copyright string. | `℗ 2013 Daft Life` |
 | `{barcode}` / `{upc}` | The global UPC/Barcode of the release. | `888837168618` |
