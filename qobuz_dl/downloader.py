@@ -742,6 +742,12 @@ class Download:
         genre_fmt = getattr(self, 'genre_tag_format', "")
         if genre_fmt:
             custom_tags["GENRE"] = fmt.format(genre_fmt, **filename_attr).strip()
+            
+        if not getattr(self, 'no_album_version_tag', False):
+            album_version = filename_attr.get("album_version")
+            
+            if album_version:
+                custom_tags["ALBUMVERSION"] = str(album_version).strip()
 
         # --- FIX MARROBHD & SYNC-PLAYLIST: CLEAN PLAYLIST NAMING ---
         legacy_flag = getattr(self.settings, 'legacy_charmap', False) if hasattr(self, 'settings') else False

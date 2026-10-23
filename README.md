@@ -13,6 +13,7 @@ Search, explore, and download Lossless and Hi-Res music from [Qobuz](https://www
 * **Roon-Ready Synchronized Lyrics (Native Qobuz Support):** The engine natively fetches official, 1:1 zero-drift timestamped lyrics directly from Qobuz's CDN, converting them into standard `.lrc` formats on the fly. It intelligently formats and embeds this data directly into the audio files (`[LYRICS]` Vorbis Comments), ensuring Roon natively displays scrolling, karaoke-style lyrics in its "Now Playing" view out-of-the-box. If you prefer a minimalist, clutter-free folder structure, you can disable the generation of external `.lrc` files entirely via CLI (`--no-lrc-files`). Conversely, if you prefer external files without bloating your audio metadata, use the `--no-embed-lyrics` flag (or set `embed_lyrics = false` in your config). Additionally, use the new `--synced-only` flag (or `synced_lyrics_only = true` in config) to strictly filter and reject any plain-text lyrics, guaranteeing your library only contains timestamped karaoke files.
 * **Massive Tag Control:** Refactored tag engine supports highly detailed classical music metadata. Almost every single tag can be toggled on/off via CLI arguments.
 * **Smart Genre Translation:** Automatically translates stubborn French genres (e.g., *Électronique*, *Bande Originale*) into standard English, ensuring your library remains consistent and searchable.
+* **Native Album Version Tagging:** The engine natively extracts the release version (e.g., Deluxe, Remastered) and injects it into a dedicated, isolated `ALBUMVERSION` tag for superior DAP compatibility. If you prefer to keep this data exclusively in the main title, you can cleanly disable its injection via config (`no_album_version_tag = true`).
 * **Native Multi-Artist & Multi-Value Tagging & Deep Performer Parsing:** Automatically detects and splits main artists, featured guests, and extracts *all* composers/lyricists from complex Qobuz metadata strings. With the new `--multi-tags` CLI flag, the engine intelligently splits comma-separated metadata into discrete multi-value tags for FLAC (Vorbis Comments) and MP3 (ID3v2.4), ensuring flawless library interpretation by high-end players like Roon, MusicBee, or Plexamp.
 * **Native Compilation Detection (`COMPILATION` & `RELEASETYPE`):** Intelligently detects "Various Artists" albums and correctly tags them as compilations for perfect grouping in Navidrome, Picard, and Roon. To support international libraries, users can completely customize the detection aliases for their native language (e.g., "artisti vari", "varios artistas") directly in the `config.ini` file.
 * **Native ReplayGain Support:** Automatically extracts and embeds `REPLAYGAIN_TRACK_GAIN` and `REPLAYGAIN_TRACK_PEAK` tags directly from Qobuz's hidden API data. This ensures perfect, non-destructive volume leveling out-of-the-box for high-end digital audio players (DAPs) and audiophile servers like Roon.
@@ -190,6 +191,9 @@ album_tag_format = {album_title_base}{version_tag}
 date_tag_format = {year}
 genre_tag_format = {primary_genre}
 
+# Set to 'true' to completely disable the injection of the standalone ALBUMVERSION tag
+no_album_version_tag = false
+
 # Album artist names that mark a compilation (tagged COMPILATION=1, RELEASETYPE compilation).
 # Case-insensitive, comma-separated: add the name Qobuz uses in your language
 various_artists_aliases = various artists, various, va, artistes divers, verschiedene interpreten, varios artistas, artisti vari, vari
@@ -221,7 +225,8 @@ usage: python -m qobuz_dl dl [-h] [-d PATH] [-q int] [--albums-only] [--no-m3u] 
                              [--embedded-art-size {50,100,150,300,600,max,org}] 
                              [--saved-art-size {50,100,150,300,600,max,org}] 
                              [--multiple-disc-prefix PREFIX] [--multiple-disc-one-dir] 
-                             [--no-lyrics] [--no-lrc-files] [--synced-only] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
+                             [--no-album-artist-tag] [--no-album-version-tag] [--no-track-composer-tag] ...
+							 [--no-lyrics] [--no-lrc-files] [--synced-only] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
                              [--no-album-artist-tag] [--no-track-composer-tag] ... 
                              SOURCE [SOURCE ...]
 ```
