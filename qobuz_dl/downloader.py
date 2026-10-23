@@ -234,6 +234,7 @@ class Download:
         track_format=None,
         fetch_lyrics: bool = False,
         no_lrc_files: bool = False,
+        synced_lyrics_only: bool = False,
         genius_token: str = None,
         no_credits: bool = False,
         settings: QobuzDLSettings = None,
@@ -288,6 +289,7 @@ class Download:
 
         self.fetch_lyrics = fetch_lyrics
         self.no_lrc_files = no_lrc_files
+        self.synced_lyrics_only = synced_lyrics_only
         if self.fetch_lyrics:
             self.lyrics_engine = LyricsEngine(genius_token)
 
@@ -890,7 +892,6 @@ class Download:
 
             search_album = _safe_get(track_metadata, "album", "title", default="")
             
-            # LOCK RIMOSSO: Le chiamate HTTP sono libere, la UI è protetta da safe_print
             self.lyrics_engine.fetch_and_inject(
                 file_path=final_file, 
                 artist=search_artist, 
@@ -901,7 +902,8 @@ class Download:
                 save_lrc=not self.no_lrc_files,
                 embed_lyrics=getattr(self.settings, 'embed_lyrics', True),
                 is_parallel=is_parallel,
-                print_func=safe_print
+                print_func=safe_print,
+                synced_only=self.synced_lyrics_only
             )
 
         delay_time = getattr(self.settings, 'delay', 0)
@@ -941,8 +943,9 @@ class Download:
             "track_title": _get_title(track_metadata),
             "track_title_base": track_metadata.get("title"),
             "version": track_metadata.get("version"),
+            "album_version": album_metadata.get("version", ""),
+            "version_tag": f" - {album_metadata.get('version')}" if album_metadata.get("version") else "",
             "year": track_metadata.get("release_date_original", "").split("-")[0],
-            "disc_number": f'{track_metadata.get("media_number"):02}',
             "release_date": track_metadata.get("release_date_original"),
             "ExplicitFlag": "[E]" if track_metadata.get("parental_warning") else "",
             "explicit": "[E]" if track_metadata.get("parental_warning") else "",

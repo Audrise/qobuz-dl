@@ -223,6 +223,7 @@ def _reset_config(config_file):
     config["qobuz"]["no_database"] = "false"
     config["qobuz"]["no_lrc_files"] = "true"
     config["qobuz"]["embed_lyrics"] = "true"
+    config["qobuz"]["synced_lyrics_only"] = "false"
     config["qobuz"]["multi_value_tags"] = "false"
     config["qobuz"]["legacy_charmap"] = "false"
     config["qobuz"]["blacklist"] = "blacklist.txt"
@@ -485,6 +486,7 @@ def main():
         
         no_m3u = config.getboolean(section, "no_m3u", fallback=False)
         no_lrc_files_config = config.getboolean(section, "no_lrc_files", fallback=False)
+        synced_lyrics_only_config = config.getboolean(section, "synced_lyrics_only", fallback=False)
         albums_only = config.getboolean(section, "albums_only", fallback=False)
         no_fallback = config.getboolean(section, "no_fallback", fallback=False)
         og_cover = config.getboolean(section, "og_cover", fallback=True)
@@ -585,9 +587,10 @@ def main():
             if not target_dir.startswith("\\\\?\\"):
                 target_dir = "\\\\?\\" + target_dir
         
-        lrc_pref = not config.getboolean(section, "no_lrc_files", fallback=False)
-        embed_pref = config.getboolean(section, "embed_lyrics", fallback=True)
-        local_settings = QobuzDLSettings(lrc_files=lrc_pref, embed_lyrics=embed_pref)
+        lrc_pref = getattr(arguments, 'lrc_files', not config.getboolean(section, "no_lrc_files", fallback=False))
+        embed_pref = False if getattr(arguments, 'no_embed_lyrics', False) else config.getboolean(section, "embed_lyrics", fallback=True)
+        synced_pref = getattr(arguments, 'synced_only', False) or config.getboolean(section, "synced_lyrics_only", fallback=False)
+        local_settings = QobuzDLSettings(lrc_files=lrc_pref, embed_lyrics=embed_pref, synced_lyrics_only=synced_pref)
         
         # Initialize an authenticated API client to fetch native Qobuz lyrics
         print(f"\n\033[96m[*] Initializing Qobuz API Client for native lyrics fetch...\033[0m")
@@ -657,6 +660,7 @@ def main():
         smart_discography=arguments.smart_discography or smart_discography,
         fetch_lyrics=fetch_lyrics,
         no_lrc_files=not getattr(arguments, 'lrc_files', True) or no_lrc_files_config,
+        synced_lyrics_only=getattr(arguments, 'synced_only', False) or synced_lyrics_only_config,
         genius_token=genius_token,
         force_english=force_english,
         no_credits=no_credits_flag,

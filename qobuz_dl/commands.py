@@ -227,6 +227,11 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         help="don't create .m3u files when downloading playlists",
     )
     custom_parser.add_argument(
+        "--synced-only",
+        action="store_true",
+        help="only download and inject timestamped synchronized lyrics (skip plain text)",
+    )
+    custom_parser.add_argument(
         "--no-fallback",
         action="store_true",
         help="disable quality fallback (skip releases not available in set quality)",
@@ -556,7 +561,7 @@ def qobuz_dl_args(
     
     [
         add_common_arg(i, default_folder, default_quality)
-        for i in (interactive, download, lucky, sync_pl_cmd)
+        for i in (interactive, download, lucky, sync_pl_cmd, lyrics_cmd)
     ]
 
     return parser

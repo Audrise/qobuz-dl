@@ -60,6 +60,7 @@ class QobuzDLSettings:
         self.no_album_url_tag = kwargs.get('no_album_url_tag', False)
         self.lrc_files = kwargs.get('lrc_files', True)
         self.embed_lyrics = kwargs.get('embed_lyrics', True)
+        self.synced_lyrics_only = kwargs.get('synced_lyrics_only', False)
         self.multi_value_tags = kwargs.get('multi_value_tags', False)
         self.disable_smart_truncation = kwargs.get('disable_smart_truncation', False)
         self.various_artists_aliases = self.parse_aliases(
@@ -188,13 +189,10 @@ class QobuzDLSettings:
         
             # --no-lrc-files stores False in arguments.lrc_files (it is absent without the flag)
             'lrc_files': getattr(arguments, 'lrc_files', not config.getboolean(section, "no_lrc_files", fallback=False)),
-        
             'embed_lyrics': False if getattr(arguments, 'no_embed_lyrics', False) else config.getboolean(section, "embed_lyrics", fallback=True),
-        
+            'synced_lyrics_only': getattr(arguments, 'synced_only', False) or config.getboolean(section, "synced_lyrics_only", fallback=False),
             'multi_value_tags': getattr(arguments, 'multi_value_tags', config.getboolean(section, "multi_value_tags", fallback=False)),
-
             'disable_smart_truncation': getattr(arguments, 'disable_smart_truncation', config.getboolean(section, "disable_smart_truncation", fallback=False)),
-
             'delay': getattr(arguments, 'delay', 0),
         }
         

@@ -83,6 +83,7 @@ class QobuzDL:
         smart_discography=False,
         fetch_lyrics=False,
         no_lrc_files=False,
+        synced_lyrics_only=False,
         genius_token=None,
         force_english=True,
         no_credits=False,
@@ -141,6 +142,7 @@ class QobuzDL:
         self.smart_discography = smart_discography
         self.fetch_lyrics = fetch_lyrics
         self.no_lrc_files = no_lrc_files
+        self.synced_lyrics_only = synced_lyrics_only
         self.genius_token = genius_token
         self.force_english = force_english
         self.no_credits = no_credits
@@ -202,6 +204,7 @@ class QobuzDL:
                 self.track_format,
                 self.fetch_lyrics,
                 self.no_lrc_files,
+                self.synced_lyrics_only,
                 self.genius_token,
                 self.no_credits, 
                 self.settings,

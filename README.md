@@ -10,7 +10,7 @@ Search, explore, and download Lossless and Hi-Res music from [Qobuz](https://www
 ### 🎧 Audiophile & Metadata Engine
 * **Roon & DAP Optimized:** Metadata, cover art, and lyrics are meticulously formatted to ensure perfect out-of-the-box integration with Roon servers and Digital Audio Players.
 * **Direct Album URL Tagging:** Automatically generates and embeds a direct, clickable `QOBUZ ALBUM URL` link directly into the track's metadata (Vorbis Comments for FLAC, `TXXX` frame for MP3). This allows one-click access to the original Qobuz album page directly from tag-editors like Mp3tag or compatible audiophile players. You can optionally disable this non-standard tag using the `--no-album-url-tag` flag (or `no_album_url_tag = true` in config).
-* **Roon-Ready Synchronized Lyrics (Native Qobuz Support):** The engine natively fetches official, 1:1 zero-drift timestamped lyrics directly from Qobuz's CDN, converting them into standard `.lrc` formats on the fly. It intelligently formats and embeds this data directly into the audio files (`[LYRICS]` Vorbis Comments), ensuring Roon natively displays scrolling, karaoke-style lyrics in its "Now Playing" view out-of-the-box. If you prefer a minimalist, clutter-free folder structure, you can disable the generation of external `.lrc` files entirely via CLI (`--no-lrc-files`). Conversely, if you prefer external files without bloating your audio metadata, use the `--no-embed-lyrics` flag (or set `embed_lyrics = false` in your config).
+* **Roon-Ready Synchronized Lyrics (Native Qobuz Support):** The engine natively fetches official, 1:1 zero-drift timestamped lyrics directly from Qobuz's CDN, converting them into standard `.lrc` formats on the fly. It intelligently formats and embeds this data directly into the audio files (`[LYRICS]` Vorbis Comments), ensuring Roon natively displays scrolling, karaoke-style lyrics in its "Now Playing" view out-of-the-box. If you prefer a minimalist, clutter-free folder structure, you can disable the generation of external `.lrc` files entirely via CLI (`--no-lrc-files`). Conversely, if you prefer external files without bloating your audio metadata, use the `--no-embed-lyrics` flag (or set `embed_lyrics = false` in your config). Additionally, use the new `--synced-only` flag (or `synced_lyrics_only = true` in config) to strictly filter and reject any plain-text lyrics, guaranteeing your library only contains timestamped karaoke files.
 * **Massive Tag Control:** Refactored tag engine supports highly detailed classical music metadata. Almost every single tag can be toggled on/off via CLI arguments.
 * **Smart Genre Translation:** Automatically translates stubborn French genres (e.g., *Électronique*, *Bande Originale*) into standard English, ensuring your library remains consistent and searchable.
 * **Native Multi-Artist & Multi-Value Tagging & Deep Performer Parsing:** Automatically detects and splits main artists, featured guests, and extracts *all* composers/lyricists from complex Qobuz metadata strings. With the new `--multi-tags` CLI flag, the engine intelligently splits comma-separated metadata into discrete multi-value tags for FLAC (Vorbis Comments) and MP3 (ID3v2.4), ensuring flawless library interpretation by high-end players like Roon, MusicBee, or Plexamp.
@@ -167,6 +167,9 @@ legacy_charmap = false
 # Set to 'true' to disable external .lrc file generation (lyrics will only be embedded in FLAC/MP3 tags)
 no_lrc_files = true
 
+# Set to 'true' to strictly download and inject only timestamped, synchronized lyrics (skips plain text)
+synced_lyrics_only = false
+
 # Set to 'true' to automatically sort interactive search results (Albums/Tracks) by release date descending
 interactive_sort_date = false
 
@@ -218,7 +221,7 @@ usage: python -m qobuz_dl dl [-h] [-d PATH] [-q int] [--albums-only] [--no-m3u] 
                              [--embedded-art-size {50,100,150,300,600,max,org}] 
                              [--saved-art-size {50,100,150,300,600,max,org}] 
                              [--multiple-disc-prefix PREFIX] [--multiple-disc-one-dir] 
-                             [--no-lyrics] [--no-lrc-files] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
+                             [--no-lyrics] [--no-lrc-files] [--synced-only] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
                              [--no-album-artist-tag] [--no-track-composer-tag] ... 
                              SOURCE [SOURCE ...]
 ```
@@ -295,6 +298,12 @@ python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.
 Downloads the album and injects synchronized lyrics purely into the FLAC/MP3 metadata, keeping your folders completely clean from external text files.
 ```bash
 python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb) --no-lrc-files
+```
+
+**Synced Lyrics Only Mode:**
+Strictly fetch and inject only timestamped lyrics for karaoke playback. If a track only has plain-text lyrics available in the fallback databases, the engine will gracefully skip injecting them to keep your metadata strictly synchronized.
+```bash
+python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb) --synced-only
 ```
 
 **Advanced Discography Routing:**

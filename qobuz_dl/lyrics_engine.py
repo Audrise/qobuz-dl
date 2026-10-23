@@ -61,7 +61,7 @@ class LyricsEngine:
             print_func(f"    ❌ Lyrics skipped: Too different ({res_artist} - {res_track} | {match_percentage:.1f}%)")
             return False
 
-    def fetch_and_inject(self, file_path, artist, track, album, save_lrc=True, embed_lyrics=True, is_parallel=False, track_id=None, qobuz_client=None, print_func=print):
+    def fetch_and_inject(self, file_path, artist, track, album, save_lrc=True, embed_lyrics=True, is_parallel=False, track_id=None, qobuz_client=None, print_func=print, synced_only=False):
         """
         Orchestrates the retrieval and injection of synchronized lyrics.
         Prioritizes Native Qobuz Lyrics -> LRCLIB Fallback -> Genius API.
@@ -105,13 +105,17 @@ class LyricsEngine:
                         print_func(f"    ✅ Synchronized lyrics injected (LRCLIB fallback)!")
                         return
                         
-                    elif plain_lyrics:
+                    # Skip plain lyrics if synced_only is True
+                    elif plain_lyrics and not synced_only:
                         if embed_lyrics: self._inject_metadata(file_path, plain_lyrics)
                         if save_lrc: self._save_lrc_file(file_path, plain_lyrics)
                         print_func(f"    ✅ Standard lyrics injected (LRCLIB fallback)!")
                         return
+                    elif plain_lyrics and synced_only:
+                        print_func(f"    ⏩ Skipped plain lyrics (LRCLIB) due to synced-only constraint.")
 
-            if self.genius:
+            # Completely bypass Genius if synced_only is active (it provides only plain text)
+            if self.genius and not synced_only:
                 song = self.genius.search_song(track, artist)
                 if song and song.lyrics:
                     if self._verify_match(artist, track, song.artist, song.title, is_parallel, print_func):
