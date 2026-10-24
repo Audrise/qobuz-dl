@@ -17,7 +17,7 @@ Search, explore, and download Lossless and Hi-Res music from [Qobuz](https://www
 * **Native Multi-Artist & Multi-Value Tagging & Deep Performer Parsing:** Automatically detects and splits main artists, featured guests, and extracts *all* composers/lyricists from complex Qobuz metadata strings. With the new `--multi-tags` CLI flag, the engine intelligently splits comma-separated metadata into discrete multi-value tags for FLAC (Vorbis Comments) and MP3 (ID3v2.4), ensuring flawless library interpretation by high-end players like Roon, MusicBee, or Plexamp.
 * **Native Compilation Detection (`COMPILATION` & `RELEASETYPE`):** Intelligently detects "Various Artists" albums and correctly tags them as compilations for perfect grouping in Navidrome, Picard, and Roon. To support international libraries, users can completely customize the detection aliases for their native language (e.g., "artisti vari", "varios artistas") directly in the `config.ini` file.
 * **Native ReplayGain Support:** Automatically extracts and embeds `REPLAYGAIN_TRACK_GAIN` and `REPLAYGAIN_TRACK_PEAK` tags directly from Qobuz's hidden API data. This ensures perfect, non-destructive volume leveling out-of-the-box for high-end digital audio players (DAPs) and audiophile servers like Roon.
-* **Automatic Lyrics Fallback & Retroactive Tagger:** If a track lacks official Qobuz lyrics—or if Qobuz only provides plain-text lyrics and the `--synced-only` constraint is active—the engine seamlessly drops the official payload and falls back to LRCLIB to hunt for perfectly timestamped (`.lrc`) lyrics (with a Genius fallback API). To strictly prevent polluting your library with incorrect lyrics, all fallback API responses are routed through a **Fuzzy Matching Algorithm** (cross-referencing artist and title) before injection. Includes a standalone `lyrics` command to retroactively scan and inject missing lyrics into your existing local library without re-downloading the audio.
+* **Automatic Lyrics Fallback & Retroactive Tagger:** If a track lacks official Qobuz lyrics, or if Qobuz only provides plain-text lyrics and the `--synced-only` constraint is active, the engine seamlessly drops the official payload and falls back to LRCLIB to hunt for perfectly timestamped (`.lrc`) lyrics (with a Genius fallback API). To strictly prevent polluting your library with incorrect lyrics, all fallback API responses are routed through a **Fuzzy Matching Algorithm** (cross-referencing artist and title) before injection. Includes a standalone `lyrics` command to retroactively scan and inject missing lyrics into your existing local library without re-downloading the audio.
 * **Enhanced Digital Booklets:** Automatically compiles a beautifully formatted `.txt` file with a complete tracklist, runtime, full credits, metadata, and reviews. Upon completion, the engine intelligently sweeps the folder, strips timestamps from `.lrc` files, and appends the pure text lyrics of the entire album directly into the booklet. Official PDF "Goodies" are also downloaded alongside it. **You can now use the `--booklet-only` flag to exclusively download these metadata files, cover art, and PDFs while gracefully skipping all heavy audio tracks.**
 * **Composer Field Fix:** Meticulously extracts every individual composer from the full performer string, ending the issue of truncated or "random" composer metadata.
 * **Smart Date Formatting:** Standardizes release dates to single, clean entries, preventing duplicate year/date tag conflicts in playback software.
@@ -120,7 +120,7 @@ The easiest way to run the program on Windows without installing Python.
 ### Option C: Python Source (Advanced)
 Clone this repository and install the required dependencies:
 ```bash
-git clone [https://github.com/Sei969/qobuz-dl.git](https://github.com/Sei969/qobuz-dl.git)
+git clone https://github.com/Sei969/qobuz-dl.git
 cd qobuz-dl
 pip3 install -r requirements.txt
 ```
@@ -135,7 +135,7 @@ docker pull ghcr.io/sei969/qobuz-dl:latest
 # Example: Run a download and map it to your NAS music folder
 docker run -it --rm \
   -v /path/to/your/nas/music:/app/QobuzDownloads \
-  ghcr.io/sei969/qobuz-dl:latest dl "[https://play.qobuz.com/album/](https://play.qobuz.com/album/)..."
+  ghcr.io/sei969/qobuz-dl:latest dl "https://play.qobuz.com/album/..."
 ```
 
 ### Option E: ☁️ Google Colab (Cloud & Google Drive)
@@ -245,7 +245,7 @@ python -m qobuz_dl sp "URL" -d "C:\Path\To\Local\Playlist\Folder"
                             
 **Basic Album/Playlist Download:**
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb)
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb
 ```
 
 **Explode Playlists into Albums:**
@@ -265,14 +265,14 @@ python -m qobuz_dl dl list.txt
 Downloading a massive artist discography but want to avoid wasting space on Karaoke, Tribute, or Instrumental versions? Create a text file (e.g., `blacklist.txt`) containing your unwanted keywords (one per line) and pass it to the engine. It will automatically inspect every release and seamlessly skip the junk!
 *(Tip: You can set `blacklist = blacklist.txt` in your `config.ini` to make this automatic for every download).*
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/artist/123456](https://play.qobuz.com/artist/123456) -b blacklist.txt
+python -m qobuz_dl dl https://play.qobuz.com/artist/123456 -b blacklist.txt
 ```
 
 **Label Intersection Filter:**
 Is an artist's discography page cluttered with homonyms or AI-generated junk? Cross-reference their page URL against a strictly curated label name. The engine will elegantly skip any release that doesn't belong to the target label. Supports fuzzy matching (e.g., `"Deutsche Grammophon"` will match `"Deutsche Grammophon (DG)"`).
 *(Tip: On Windows, always wrap the label name in double quotes).*
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/artist/123456](https://play.qobuz.com/artist/123456) --filter-label "Deutsche Grammophon"
+python -m qobuz_dl dl https://play.qobuz.com/artist/123456 --filter-label "Deutsche Grammophon"
 ```
 
 **Ultimate Anti-Ban Mode (Stealth + Delay):**
@@ -296,25 +296,25 @@ python -m qobuz_dl dl "URL" --multi-tags
 **Metadata & Booklet Only Mode:**
 Want to complete your library's metadata without downloading gigabytes of audio? This command fetches only the cover art, generates the Tracklist/Credits booklet, downloads official PDF Goodies, and gracefully skips all audio tracks.
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb) --booklet-only
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --booklet-only
 ```
 
 **Minimalist Folder Mode (No external .lrc files):**
 Downloads the album and injects synchronized lyrics purely into the FLAC/MP3 metadata, keeping your folders completely clean from external text files.
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb) --no-lrc-files
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --no-lrc-files
 ```
 
 **Synced Lyrics Only Mode:**
 Strictly fetch and inject only timestamped lyrics for karaoke playback. If the official Qobuz servers only provide plain-text lyrics, the engine will automatically drop them and fall back to LRCLIB to hunt for a synced version. If only plain-text lyrics are available across all databases, the engine will gracefully skip injecting them entirely to keep your metadata strictly synchronized.
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/album/qxjbxh1dc3xyb](https://play.qobuz.com/album/qxjbxh1dc3xyb) --synced-only
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --synced-only
 ```
 
 **Advanced Discography Routing:**
 Save multiple discs of a release in one single folder instead of splitting them.
 ```bash
-python -m qobuz_dl dl [https://play.qobuz.com/artist/2038380](https://play.qobuz.com/artist/2038380) --multiple-disc-one-dir
+python -m qobuz_dl dl https://play.qobuz.com/artist/2038380 --multiple-disc-one-dir
 ```
 
 **Interactive Mode (Fun Mode) & Chronological Sorting:**
