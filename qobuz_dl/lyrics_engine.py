@@ -73,12 +73,19 @@ class LyricsEngine:
             print_func(f"    🔍 Searching lyrics for: {track}...")
             
             if qobuz_client and track_id:
-                qobuz_lyrics = self._fetch_qobuz_native(qobuz_client, track_id)
+                qobuz_lyrics, is_synced = self._fetch_qobuz_native(qobuz_client, track_id)
                 if qobuz_lyrics:
-                    if embed_lyrics: self._inject_metadata(file_path, qobuz_lyrics)
-                    if save_lrc: self._save_lrc_file(file_path, qobuz_lyrics)
-                    print_func(f"    ✅ Official Qobuz lyrics injected (Native 1:1 sync)!")
-                    return
+                    if synced_only and not is_synced:
+                        print_func(f"    ⏩ Qobuz native lyrics are unsynced. Falling back to LRCLIB...")
+                    else:
+                        if embed_lyrics: self._inject_metadata(file_path, qobuz_lyrics)
+                        if save_lrc: self._save_lrc_file(file_path, qobuz_lyrics)
+                        
+                        if is_synced:
+                            print_func(f"    ✅ Official Qobuz lyrics injected (Native 1:1 sync)!")
+                        else:
+                            print_func(f"    ✅ Official Qobuz lyrics injected (Standard text)!")
+                        return
 
             lrclib_url = "https://lrclib.net/api/get"
             headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Sei969/qobuz-dl)"}
@@ -157,34 +164,37 @@ class LyricsEngine:
         try:
             resp = qobuz_client.api_call("track/lyricsUrl", track_id=track_id)
             if not resp or "lyrics_url" not in resp:
-                return None
+                return None, False
                 
             lyrics_url = resp.get("lyrics_url")
             if not lyrics_url:
-                return None
+                return None, False
                 
             cdn_resp = requests.get(lyrics_url, timeout=10)
             if cdn_resp.status_code != 200:
-                return None
+                return None, False
                 
             doc = cdn_resp.json()
             return self._parse_qobuz_to_lrc(doc)
         except Exception:
-            return None
+            return None, False
 
     def _parse_qobuz_to_lrc(self, doc):
         original = doc.get("original", {})
         lines = original.get("lines", [])
         
         if not lines:
-            return None
+            return None, False
             
         lrc_lines = []
+        is_synced = False
+        
         for entry in lines:
             text = entry.get("line", "").strip()
             start_ms = entry.get("start")
             
             if start_ms is not None:
+                is_synced = True
                 total_seconds = start_ms / 1000.0
                 minutes = int(total_seconds // 60)
                 seconds = total_seconds % 60
@@ -193,4 +203,4 @@ class LyricsEngine:
             else:
                 lrc_lines.append(text)
                 
-        return "\n".join(lrc_lines).strip()
+        return "\n".join(lrc_lines).strip(), is_synced
