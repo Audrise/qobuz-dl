@@ -17,7 +17,7 @@ Search, explore, and download Lossless and Hi-Res music from [Qobuz](https://www
 * **Native Multi-Artist & Multi-Value Tagging & Deep Performer Parsing:** Automatically detects and splits main artists, featured guests, and extracts *all* composers/lyricists from complex Qobuz metadata strings. With the new `--multi-tags` CLI flag, the engine intelligently splits comma-separated metadata into discrete multi-value tags for FLAC (Vorbis Comments) and MP3 (ID3v2.4), ensuring flawless library interpretation by high-end players like Roon, MusicBee, or Plexamp.
 * **Native Compilation Detection (`COMPILATION` & `RELEASETYPE`):** Intelligently detects "Various Artists" albums and correctly tags them as compilations for perfect grouping in Navidrome, Picard, and Roon. To support international libraries, users can completely customize the detection aliases for their native language (e.g., "artisti vari", "varios artistas") directly in the `config.ini` file.
 * **Native ReplayGain Support:** Automatically extracts and embeds `REPLAYGAIN_TRACK_GAIN` and `REPLAYGAIN_TRACK_PEAK` tags directly from Qobuz's hidden API data. This ensures perfect, non-destructive volume leveling out-of-the-box for high-end digital audio players (DAPs) and audiophile servers like Roon.
-* **Automatic Lyrics Fallback & Retroactive Tagger:** If a track lacks official Qobuz lyrics, or if Qobuz only provides plain-text lyrics and the `--synced-only` constraint is active, the engine seamlessly drops the official payload and falls back to LRCLIB to hunt for perfectly timestamped (`.lrc`) lyrics (with a Genius fallback API). To strictly prevent polluting your library with incorrect lyrics, all fallback API responses are routed through a **Fuzzy Matching Algorithm** (cross-referencing artist and title) before injection. Includes a standalone `lyrics` command to retroactively scan and inject missing lyrics into your existing local library without re-downloading the audio.
+* **Automatic Lyrics Fallback & Retroactive Tagger:** If a track lacks official Qobuz lyrics, or if Qobuz only provides plain-text lyrics and the `--synced-only` constraint is active, the engine seamlessly drops the official payload and falls back to LRCLIB to hunt for perfectly timestamped (`.lrc`) lyrics (with a Genius fallback API). You can now customize the provider routing and priority using the `--lyrics-sources` flag (or `lyrics_sources = qobuz,lrclib,genius` in your config), allowing custom sequences or strict single-provider injections. To strictly prevent polluting your library with incorrect lyrics, all fallback API responses are routed through a **Fuzzy Matching Algorithm** (cross-referencing artist and title) before injection. Includes a standalone `lyrics` command to retroactively scan and inject missing lyrics into your existing local library without re-downloading the audio.
 * **Enhanced Digital Booklets:** Automatically compiles a beautifully formatted `.txt` file with a complete tracklist, runtime, full credits, metadata, and reviews. Upon completion, the engine intelligently sweeps the folder, strips timestamps from `.lrc` files, and appends the pure text lyrics of the entire album directly into the booklet. Official PDF "Goodies" are also downloaded alongside it. **You can now use the `--booklet-only` flag to exclusively download these metadata files, cover art, and PDFs while gracefully skipping all heavy audio tracks.**
 * **Composer Field Fix:** Meticulously extracts every individual composer from the full performer string, ending the issue of truncated or "random" composer metadata.
 * **Smart Date Formatting:** Standardizes release dates to single, clean entries, preventing duplicate year/date tag conflicts in playback software.
@@ -171,6 +171,9 @@ no_lrc_files = true
 # Set to 'true' to strictly download and inject only timestamped, synchronized lyrics (skips plain text)
 synced_lyrics_only = false
 
+# Define the routing order for lyrics providers (comma-separated). Set to 'lrclib' to force a single provider.
+lyrics_sources = qobuz,lrclib,genius
+
 # Set to 'true' to automatically sort interactive search results (Albums/Tracks) by release date descending
 interactive_sort_date = false
 
@@ -225,8 +228,7 @@ usage: python -m qobuz_dl dl [-h] [-d PATH] [-q int] [--albums-only] [--no-m3u] 
                              [--embedded-art-size {50,100,150,300,600,max,org}] 
                              [--saved-art-size {50,100,150,300,600,max,org}] 
                              [--multiple-disc-prefix PREFIX] [--multiple-disc-one-dir] 
-                             [--no-album-artist-tag] [--no-album-version-tag] [--no-track-composer-tag] ...
-							 [--no-lyrics] [--no-lrc-files] [--synced-only] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
+                             [--no-lyrics] [--no-lrc-files] [--synced-only] [--lyrics-sources PROVIDERS] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
                              [--no-album-artist-tag] [--no-track-composer-tag] ... 
                              SOURCE [SOURCE ...]
 ```
@@ -309,6 +311,12 @@ python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --no-lrc-files
 Strictly fetch and inject only timestamped lyrics for karaoke playback. If the official Qobuz servers only provide plain-text lyrics, the engine will automatically drop them and fall back to LRCLIB to hunt for a synced version. If only plain-text lyrics are available across all databases, the engine will gracefully skip injecting them entirely to keep your metadata strictly synchronized.
 ```bash
 python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --synced-only
+```
+
+**Custom Lyrics Provider Routing:**
+Force the engine to bypass Qobuz and Genius, strictly hunting for synchronized lyrics on LRCLIB. If a timestamped version is missing, the engine gracefully skips injection to keep your metadata clean.
+```bash
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --lyrics-sources lrclib --synced-only
 ```
 
 **Advanced Discography Routing:**

@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import difflib
 import mutagen
@@ -14,7 +15,7 @@ except ImportError:
 class LyricsEngine:
     """
     Roon-Ready Synchronized Lyrics Engine with Fuzzy Matching Security.
-    Now prioritizing Official Qobuz Native Lyrics as the primary source.
+    Supports dynamic routing based on the user's preferred lyrics_sources.
     """
 
     def __init__(self, genius_token=None):
@@ -27,7 +28,7 @@ class LyricsEngine:
     def _verify_match(self, req_artist, req_track, res_artist, res_track, is_parallel=False, print_func=print):
         """
         Fuzzy Matching Algorithm to prevent injecting wrong lyrics.
-        Context-Aware: auto-skips borderline matches during parallel execution to prevent deadlocks.
+        Context-Aware: auto-skips borderline matches during parallel execution.
         """
         if not res_artist or not res_track:
             return False
@@ -61,75 +62,132 @@ class LyricsEngine:
             print_func(f"    ❌ Lyrics skipped: Too different ({res_artist} - {res_track} | {match_percentage:.1f}%)")
             return False
 
-    def fetch_and_inject(self, file_path, artist, track, album, save_lrc=True, embed_lyrics=True, is_parallel=False, track_id=None, qobuz_client=None, print_func=print, synced_only=False):
+    def fetch_and_inject(self, file_path, artist, track, album, save_lrc=True, embed_lyrics=True, is_parallel=False, track_id=None, qobuz_client=None, print_func=print, synced_only=False, lyrics_sources=None):
         """
         Orchestrates the retrieval and injection of synchronized lyrics.
-        Prioritizes Native Qobuz Lyrics -> LRCLIB Fallback -> Genius API.
+        Iterates over the defined lyrics_sources array and stops at the first valid match.
         """
         if not save_lrc and not embed_lyrics:
             return
             
+        if lyrics_sources is None:
+            lyrics_sources = ['qobuz', 'lrclib', 'genius']
+            
         try:
             print_func(f"    🔍 Searching lyrics for: {track}...")
             
-            if qobuz_client and track_id:
-                qobuz_lyrics, is_synced = self._fetch_qobuz_native(qobuz_client, track_id)
-                if qobuz_lyrics:
-                    if synced_only and not is_synced:
-                        print_func(f"    ⏩ Qobuz native lyrics are unsynced. Falling back to LRCLIB...")
-                    else:
-                        if embed_lyrics: self._inject_metadata(file_path, qobuz_lyrics)
-                        if save_lrc: self._save_lrc_file(file_path, qobuz_lyrics)
-                        
-                        if is_synced:
-                            print_func(f"    ✅ Official Qobuz lyrics injected (Native 1:1 sync)!")
-                        else:
-                            print_func(f"    ✅ Official Qobuz lyrics injected (Standard text)!")
-                        return
+            # Extract track duration dynamically for accurate LRCLIB matching
+            duration = None
+            if file_path and os.path.exists(file_path):
+                try:
+                    audio_file = mutagen.File(file_path)
+                    if audio_file and audio_file.info:
+                        duration = int(audio_file.info.length)
+                except Exception:
+                    pass
 
-            lrclib_url = "https://lrclib.net/api/get"
-            headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Sei969/qobuz-dl)"}
-            
-            params = {"artist_name": artist, "track_name": track, "album_name": album}
-            response = requests.get(lrclib_url, params=params, headers=headers, timeout=12) 
-            
-            if response.status_code != 200:
-                params = {"artist_name": artist, "track_name": track}
-                response = requests.get(lrclib_url, params=params, headers=headers, timeout=12)
+            def _request_lrclib(url, params):
+                """Helper to manage HTTP 503 intermittent errors with automatic retry."""
+                headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Sei969/qobuz-dl)"}
+                for attempt in range(2):
+                    try:
+                        resp = requests.get(url, params=params, headers=headers, timeout=12)
+                        if resp.status_code == 503:
+                            time.sleep(2)
+                            continue
+                        return resp
+                    except requests.exceptions.RequestException:
+                        time.sleep(2)
+                return None
 
-            if response.status_code == 200:
-                data = response.json()
-                api_artist = data.get("artistName", "")
-                api_track = data.get("trackName", "")
+            for source in lyrics_sources:
                 
-                if self._verify_match(artist, track, api_artist, api_track, is_parallel, print_func):
-                    synced_lyrics = data.get("syncedLyrics")
-                    plain_lyrics = data.get("plainLyrics")
-                    
-                    if synced_lyrics:
-                        if embed_lyrics: self._inject_metadata(file_path, synced_lyrics)
-                        if save_lrc: self._save_lrc_file(file_path, synced_lyrics)
-                        print_func(f"    ✅ Synchronized lyrics injected (LRCLIB fallback)!")
-                        return
-                        
-                    # Skip plain lyrics if synced_only is True
-                    elif plain_lyrics and not synced_only:
-                        if embed_lyrics: self._inject_metadata(file_path, plain_lyrics)
-                        if save_lrc: self._save_lrc_file(file_path, plain_lyrics)
-                        print_func(f"    ✅ Standard lyrics injected (LRCLIB fallback)!")
-                        return
-                    elif plain_lyrics and synced_only:
-                        print_func(f"    ⏩ Skipped plain lyrics (LRCLIB) due to synced-only constraint.")
+                # --- QOBUZ NATIVE PROVIDER ---
+                if source == 'qobuz' and qobuz_client and track_id:
+                    qobuz_lyrics, is_synced = self._fetch_qobuz_native(qobuz_client, track_id)
+                    if qobuz_lyrics:
+                        if synced_only and not is_synced:
+                            print_func(f"    ⏩ Qobuz native lyrics are unsynced. Skipping to next provider...")
+                        else:
+                            if embed_lyrics: self._inject_metadata(file_path, qobuz_lyrics)
+                            if save_lrc: self._save_lrc_file(file_path, qobuz_lyrics)
+                            
+                            if is_synced:
+                                print_func(f"    ✅ Official Qobuz lyrics injected (Native 1:1 sync)!")
+                            else:
+                                print_func(f"    ✅ Official Qobuz lyrics injected (Standard text)!")
+                            return
 
-            # Completely bypass Genius if synced_only is active (it provides only plain text)
-            if self.genius and not synced_only:
-                song = self.genius.search_song(track, artist)
-                if song and song.lyrics:
-                    if self._verify_match(artist, track, song.artist, song.title, is_parallel, print_func):
-                        if embed_lyrics: self._inject_metadata(file_path, song.lyrics)
-                        if save_lrc: self._save_lrc_file(file_path, song.lyrics)
-                        print_func(f"    ✅ Lyrics injected via Genius and saved!")
-                        return
+                # --- LRCLIB PROVIDER ---
+                elif source == 'lrclib':
+                    lrclib_get_url = "https://lrclib.net/api/get"
+                    lrclib_search_url = "https://lrclib.net/api/search"
+                    
+                    params = {"artist_name": artist, "track_name": track, "album_name": album}
+                    if duration: params["duration"] = duration
+
+                    response = _request_lrclib(lrclib_get_url, params)
+                    
+                    if not response or response.status_code != 200:
+                        fallback_params = {"artist_name": artist, "track_name": track}
+                        if duration: fallback_params["duration"] = duration
+                        response = _request_lrclib(lrclib_get_url, fallback_params)
+
+                    if response and response.status_code == 200:
+                        data = response.json()
+                        api_artist = data.get("artistName", "")
+                        api_track = data.get("trackName", "")
+                        
+                        if self._verify_match(artist, track, api_artist, api_track, is_parallel, print_func):
+                            synced_lyrics = data.get("syncedLyrics")
+                            plain_lyrics = data.get("plainLyrics")
+                            
+                            if synced_lyrics:
+                                if embed_lyrics: self._inject_metadata(file_path, synced_lyrics)
+                                if save_lrc: self._save_lrc_file(file_path, synced_lyrics)
+                                print_func(f"    ✅ Synchronized lyrics injected (LRCLIB)!")
+                                return
+                            elif plain_lyrics and not synced_only:
+                                if embed_lyrics: self._inject_metadata(file_path, plain_lyrics)
+                                if save_lrc: self._save_lrc_file(file_path, plain_lyrics)
+                                print_func(f"    ✅ Standard lyrics injected (LRCLIB)!")
+                                return
+                            elif plain_lyrics and synced_only:
+                                print_func(f"    ⏩ Skipped plain lyrics (LRCLIB /api/get). Initiating deep search...")
+                    
+                    if synced_only:
+                        search_params = {"q": f"{artist} {track}"}
+                        search_resp = _request_lrclib(lrclib_search_url, search_params)
+                        
+                        if search_resp and search_resp.status_code == 200:
+                            results = search_resp.json()
+                            if isinstance(results, list):
+                                for res in results:
+                                    api_artist = res.get("artistName", "")
+                                    api_track = res.get("trackName", "")
+                                    
+                                    if self._verify_match(artist, track, api_artist, api_track, is_parallel=True, print_func=lambda *a, **k: None):
+                                        synced_lyrics = res.get("syncedLyrics")
+                                        if synced_lyrics:
+                                            res_duration = res.get("duration")
+                                            if duration and res_duration and abs(duration - res_duration) > 6:
+                                                continue
+                                                
+                                            if embed_lyrics: self._inject_metadata(file_path, synced_lyrics)
+                                            if save_lrc: self._save_lrc_file(file_path, synced_lyrics)
+                                            print_func(f"    ✅ Synchronized lyrics injected (LRCLIB Deep Search)!")
+                                            return
+
+                # --- GENIUS PROVIDER ---
+                elif source == 'genius':
+                    if self.genius and not synced_only:
+                        song = self.genius.search_song(track, artist)
+                        if song and song.lyrics:
+                            if self._verify_match(artist, track, song.artist, song.title, is_parallel, print_func):
+                                if embed_lyrics: self._inject_metadata(file_path, song.lyrics)
+                                if save_lrc: self._save_lrc_file(file_path, song.lyrics)
+                                print_func(f"    ✅ Lyrics injected via Genius and saved!")
+                                return
 
             print_func(f"    ❌ No valid lyrics found for this track.")
 

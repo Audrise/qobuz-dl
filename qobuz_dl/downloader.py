@@ -909,7 +909,8 @@ class Download:
                 embed_lyrics=getattr(self.settings, 'embed_lyrics', True),
                 is_parallel=is_parallel,
                 print_func=safe_print,
-                synced_only=self.synced_lyrics_only
+                synced_only=self.synced_lyrics_only,
+                lyrics_sources=getattr(self.settings, 'lyrics_sources', None)
             )
 
         delay_time = getattr(self.settings, 'delay', 0)

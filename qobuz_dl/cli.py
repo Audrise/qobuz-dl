@@ -224,6 +224,7 @@ def _reset_config(config_file):
     config["qobuz"]["no_lrc_files"] = "true"
     config["qobuz"]["embed_lyrics"] = "true"
     config["qobuz"]["synced_lyrics_only"] = "false"
+    config["qobuz"]["lyrics_sources"] = "qobuz,lrclib,genius"
     config["qobuz"]["multi_value_tags"] = "false"
     config["qobuz"]["legacy_charmap"] = "false"
     config["qobuz"]["blacklist"] = "blacklist.txt"
@@ -590,7 +591,14 @@ def main():
         lrc_pref = getattr(arguments, 'lrc_files', not config.getboolean(section, "no_lrc_files", fallback=False))
         embed_pref = False if getattr(arguments, 'no_embed_lyrics', False) else config.getboolean(section, "embed_lyrics", fallback=True)
         synced_pref = getattr(arguments, 'synced_only', False) or config.getboolean(section, "synced_lyrics_only", fallback=False)
-        local_settings = QobuzDLSettings(lrc_files=lrc_pref, embed_lyrics=embed_pref, synced_lyrics_only=synced_pref)
+        raw_sources = getattr(arguments, 'lyrics_sources', None) or config.get(section, "lyrics_sources", fallback="qobuz,lrclib,genius")
+        l_sources = [src.strip().lower() for src in raw_sources.split(',') if src.strip()]
+        local_settings = QobuzDLSettings(
+            lrc_files=lrc_pref, 
+            embed_lyrics=embed_pref, 
+            synced_lyrics_only=synced_pref,
+            lyrics_sources=l_sources
+        )
         
         # Initialize an authenticated API client to fetch native Qobuz lyrics
         print(f"\n\033[96m[*] Initializing Qobuz API Client for native lyrics fetch...\033[0m")

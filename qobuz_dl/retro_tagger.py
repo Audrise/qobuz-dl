@@ -112,7 +112,8 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                             embed_lyrics=getattr(settings, 'embed_lyrics', True),
                             track_id=track_id,
                             qobuz_client=client,
-                            synced_only=getattr(settings, 'synced_lyrics_only', False)
+                            synced_only=getattr(settings, 'synced_lyrics_only', False),
+                            lyrics_sources=getattr(settings, 'lyrics_sources', None)
                         )
                         injected += 1
                             

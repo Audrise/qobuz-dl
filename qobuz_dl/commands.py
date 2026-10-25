@@ -316,6 +316,12 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         help="do not embed lyrics into the audio file tags (save as .lrc/.txt only)",
     )
     custom_parser.add_argument(
+        "--lyrics-sources",
+        type=str,
+        default=None,
+        help="comma-separated list of lyrics providers in order of preference (e.g. qobuz,lrclib,genius)",
+    )
+    custom_parser.add_argument(
         "--multi-tags",
         dest="multi_value_tags",
         action="store_true",
