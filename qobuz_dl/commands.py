@@ -316,6 +316,11 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         help="do not embed lyrics into the audio file tags (save as .lrc/.txt only)",
     )
     custom_parser.add_argument(
+        "--overwrite-lyrics",
+        action="store_true",
+        help="force overwrite of existing lyrics in audio tags and .lrc files if a new valid match is found",
+    )
+    custom_parser.add_argument(
         "--lyrics-sources",
         type=str,
         default=None,

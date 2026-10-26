@@ -597,7 +597,8 @@ def main():
             lrc_files=lrc_pref, 
             embed_lyrics=embed_pref, 
             synced_lyrics_only=synced_pref,
-            lyrics_sources=l_sources
+            lyrics_sources=l_sources,
+            overwrite_lyrics=getattr(arguments, 'overwrite_lyrics', False)
         )
         
         # Initialize an authenticated API client to fetch native Qobuz lyrics

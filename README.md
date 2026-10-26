@@ -18,6 +18,7 @@ Search, explore, and download Lossless and Hi-Res music from [Qobuz](https://www
 * **Native Compilation Detection (`COMPILATION` & `RELEASETYPE`):** Intelligently detects "Various Artists" albums and correctly tags them as compilations for perfect grouping in Navidrome, Picard, and Roon. To support international libraries, users can completely customize the detection aliases for their native language (e.g., "artisti vari", "varios artistas") directly in the `config.ini` file.
 * **Native ReplayGain Support:** Automatically extracts and embeds `REPLAYGAIN_TRACK_GAIN` and `REPLAYGAIN_TRACK_PEAK` tags directly from Qobuz's hidden API data. This ensures perfect, non-destructive volume leveling out-of-the-box for high-end digital audio players (DAPs) and audiophile servers like Roon.
 * **Automatic Lyrics Fallback & Retroactive Tagger:** If a track lacks official Qobuz lyrics, or if Qobuz only provides plain-text lyrics and the `--synced-only` constraint is active, the engine seamlessly drops the official payload and falls back to LRCLIB to hunt for perfectly timestamped (`.lrc`) lyrics (with a Genius fallback API). You can now customize the provider routing and priority using the `--lyrics-sources` flag (or `lyrics_sources = qobuz,lrclib,genius` in your config), allowing custom sequences or strict single-provider injections. To strictly prevent polluting your library with incorrect lyrics, all fallback API responses are routed through a **Fuzzy Matching Algorithm** (cross-referencing artist and title) before injection. Includes a standalone `lyrics` command to retroactively scan and inject missing lyrics into your existing local library without re-downloading the audio.
+* **Smart Lyrics Overwrite:** Safely repair files containing incorrect, out-of-sync, or plain-text lyrics. By passing the `--overwrite-lyrics` CLI flag, the engine bypasses the standard skip-logic, hunts for a superior match, and dynamically overwrites both the internal audio tags and the external `.lrc` file. It only overwrites if a valid replacement is found, guaranteeing you never lose existing data.
 * **Enhanced Digital Booklets:** Automatically compiles a beautifully formatted `.txt` file with a complete tracklist, runtime, full credits, metadata, and reviews. Upon completion, the engine intelligently sweeps the folder, strips timestamps from `.lrc` files, and appends the pure text lyrics of the entire album directly into the booklet. Official PDF "Goodies" are also downloaded alongside it. **You can now use the `--booklet-only` flag to exclusively download these metadata files, cover art, and PDFs while gracefully skipping all heavy audio tracks.**
 * **Composer Field Fix:** Meticulously extracts every individual composer from the full performer string, ending the issue of truncated or "random" composer metadata.
 * **Smart Date Formatting:** Standardizes release dates to single, clean entries, preventing duplicate year/date tag conflicts in playback software.
@@ -228,7 +229,7 @@ usage: python -m qobuz_dl dl [-h] [-d PATH] [-q int] [--albums-only] [--no-m3u] 
                              [--embedded-art-size {50,100,150,300,600,max,org}] 
                              [--saved-art-size {50,100,150,300,600,max,org}] 
                              [--multiple-disc-prefix PREFIX] [--multiple-disc-one-dir] 
-                             [--no-lyrics] [--no-lrc-files] [--synced-only] [--lyrics-sources PROVIDERS] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
+                             [--no-lyrics] [--no-lrc-files] [--synced-only] [--lyrics-sources PROVIDERS] [--overwrite-lyrics] [--native-lang] [--no-credits] [--with-credits] [--booklet-only] [--delay SECONDS] [--playlist-as-albums]
                              [--no-album-artist-tag] [--no-track-composer-tag] ... 
                              SOURCE [SOURCE ...]
 ```
@@ -319,6 +320,12 @@ Force the engine to bypass Qobuz and Genius, strictly hunting for synchronized l
 python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --lyrics-sources lrclib --synced-only
 ```
 
+**Smart Lyrics Overwrite (Repair Wrong Lyrics):**
+Did you previously download a track with plain-text, out-of-sync, or incorrect lyrics? Use this flag to force the engine to hunt for a better version and overwrite your existing tags. It pairs perfectly with `--synced-only` and a specific provider like `--lyrics-sources lrclib` to guarantee a flawless Karaoke replacement without losing your music files.
+```bash
+python -m qobuz_dl dl https://play.qobuz.com/album/qxjbxh1dc3xyb --overwrite-lyrics --lyrics-sources lrclib --synced-only
+```
+
 **Advanced Discography Routing:**
 Save multiple discs of a release in one single folder instead of splitting them.
 ```bash
@@ -355,9 +362,10 @@ The Ultimate Edition includes powerful local library managers to keep track of y
   ```
 
 * **Retroactive Lyrics Tagger (`lyrics`):**
-  Do you have an existing local music library that lacks synced lyrics? The `lyrics` command acts as a standalone metadata engine. It recursively scans any local directory and detects FLAC/MP3 files missing lyrics. It intelligently reads the hidden `QOBUZTRACKID` tags from your existing files to retroactively fetch and inject the **official native 1:1 Qobuz lyrics**. For files originating from other sources (e.g., CD rips), it gracefully falls back to LRCLIB and Genius APIs using the Fuzzy Matching algorithm, all without re-downloading any audio.
+  Do you have an existing local music library that lacks synced lyrics? The `lyrics` command acts as a standalone metadata engine. It recursively scans any local directory and detects FLAC/MP3 files missing lyrics. It intelligently reads the hidden `QOBUZTRACKID` tags from your existing files to retroactively fetch and inject the **official native 1:1 Qobuz lyrics**. For files originating from other sources (e.g., CD rips), it gracefully falls back to LRCLIB and Genius APIs using the Fuzzy Matching algorithm, all without re-downloading any audio. 
+  **Need to repair existing bad lyrics?** You can chain `--overwrite-lyrics` along with `--synced-only` and a strict provider like `--lyrics-sources lrclib`. The engine will ignore the old incorrect tags, perform a rigorous Deep Search, and seamlessly overwrite both the internal audio tags and the external `.lrc` file only if a superior timestamped match is found.
   ```bash
-  python -m qobuz_dl lyrics "/path/to/your/local/music/folder"
+  python -m qobuz_dl lyrics "/path/to/your/local/music/folder" --overwrite-lyrics --lyrics-sources lrclib --synced-only
   ```
 
 * **Purge Database (`-p`, `--purge`):**

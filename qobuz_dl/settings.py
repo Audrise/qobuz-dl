@@ -60,6 +60,7 @@ class QobuzDLSettings:
         self.no_album_url_tag = kwargs.get('no_album_url_tag', False)
         self.lrc_files = kwargs.get('lrc_files', True)
         self.embed_lyrics = kwargs.get('embed_lyrics', True)
+        self.overwrite_lyrics = kwargs.get('overwrite_lyrics', False)
         self.synced_lyrics_only = kwargs.get('synced_lyrics_only', False)
         self.lyrics_sources = kwargs.get('lyrics_sources', ['qobuz', 'lrclib', 'genius'])
         self.multi_value_tags = kwargs.get('multi_value_tags', False)
@@ -191,6 +192,7 @@ class QobuzDLSettings:
             # --no-lrc-files stores False in arguments.lrc_files (it is absent without the flag)
             'lrc_files': getattr(arguments, 'lrc_files', not config.getboolean(section, "no_lrc_files", fallback=False)),
             'embed_lyrics': False if getattr(arguments, 'no_embed_lyrics', False) else config.getboolean(section, "embed_lyrics", fallback=True),
+            'overwrite_lyrics': getattr(arguments, 'overwrite_lyrics', False),
             'synced_lyrics_only': getattr(arguments, 'synced_only', False) or config.getboolean(section, "synced_lyrics_only", fallback=False),
             'lyrics_sources': [
             src.strip().lower() for src in (

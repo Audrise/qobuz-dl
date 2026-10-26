@@ -54,9 +54,10 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                     if file.lower().endswith(".flac"):
                         audio = FLAC(file_path)
                         # Check if lyrics are already present
-                        if audio.get("LYRICS") or audio.get("UNSYNCEDLYRICS"):
-                            skipped += 1
-                            continue
+                        if not getattr(settings, 'overwrite_lyrics', False):
+                            if audio.get("LYRICS") or audio.get("UNSYNCEDLYRICS"):
+                                skipped += 1
+                                continue
                             
                         title = audio.get("TITLE", [""])[0]
                         album_artist = audio.get("ALBUMARTIST", [""])[0]
@@ -77,9 +78,10 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                             continue
                             
                         # Check if lyrics are already present (USLT = unsynced, SYLT = synced)
-                        if audio.getall("USLT") or audio.getall("SYLT"):
-                            skipped += 1
-                            continue
+                        if not getattr(settings, 'overwrite_lyrics', False):
+                            if audio.getall("USLT") or audio.getall("SYLT"):
+                                skipped += 1
+                                continue
                             
                         title = audio.get("TIT2").text[0] if audio.get("TIT2") else ""
                         artist = audio.get("TPE1").text[0] if audio.get("TPE1") else ""

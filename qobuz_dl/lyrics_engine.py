@@ -88,7 +88,7 @@ class LyricsEngine:
 
             def _request_lrclib(url, params):
                 """Helper to manage HTTP 503 intermittent errors with automatic retry."""
-                headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Sei969/qobuz-dl)"}
+                headers = {"User-Agent": "qobuz-dl-ultimate/2.6.5 (https://github.com/Sei969/qobuz-dl)"}
                 for attempt in range(2):
                     try:
                         resp = requests.get(url, params=params, headers=headers, timeout=12)
@@ -100,7 +100,7 @@ class LyricsEngine:
                         time.sleep(2)
                 return None
 
-            for source in lyrics_sources:
+            for index, source in enumerate(lyrics_sources):
                 
                 # --- QOBUZ NATIVE PROVIDER ---
                 if source == 'qobuz' and qobuz_client and track_id:
@@ -117,6 +117,9 @@ class LyricsEngine:
                             else:
                                 print_func(f"    ✅ Official Qobuz lyrics injected (Standard text)!")
                             return
+                    
+                    if index < len(lyrics_sources) - 1:
+                        print_func(f"    ⏩ No valid results from QOBUZ. Falling back to {lyrics_sources[index + 1].upper()}...")
 
                 # --- LRCLIB PROVIDER ---
                 elif source == 'lrclib':
@@ -156,27 +159,46 @@ class LyricsEngine:
                                 print_func(f"    ⏩ Skipped plain lyrics (LRCLIB /api/get). Initiating deep search...")
                     
                     if synced_only:
-                        search_params = {"q": f"{artist} {track}"}
+                        # Use explicit fields instead of general 'q' parameter for better accuracy
+                        search_params = {"artist_name": artist, "track_name": track}
                         search_resp = _request_lrclib(lrclib_search_url, search_params)
                         
                         if search_resp and search_resp.status_code == 200:
                             results = search_resp.json()
                             if isinstance(results, list):
+                                valid_candidates = []
+                                
                                 for res in results:
                                     api_artist = res.get("artistName", "")
                                     api_track = res.get("trackName", "")
                                     
+                                    # Use lambda to suppress output for multiple candidate evaluations
                                     if self._verify_match(artist, track, api_artist, api_track, is_parallel=True, print_func=lambda *a, **k: None):
                                         synced_lyrics = res.get("syncedLyrics")
                                         if synced_lyrics:
                                             res_duration = res.get("duration")
-                                            if duration and res_duration and abs(duration - res_duration) > 6:
-                                                continue
-                                                
-                                            if embed_lyrics: self._inject_metadata(file_path, synced_lyrics)
-                                            if save_lrc: self._save_lrc_file(file_path, synced_lyrics)
-                                            print_func(f"    ✅ Synchronized lyrics injected (LRCLIB Deep Search)!")
-                                            return
+                                            
+                                            # Tighter duration tolerance (3 seconds instead of 6)
+                                            if duration and res_duration:
+                                                diff = abs(duration - res_duration)
+                                                if diff <= 3:
+                                                    valid_candidates.append((diff, synced_lyrics))
+                                            elif not duration:
+                                                # If we have no local duration, accept the first valid fuzzy match
+                                                valid_candidates.append((0, synced_lyrics))
+                                
+                                if valid_candidates:
+                                    # Pick the closest candidate based on duration difference
+                                    valid_candidates.sort(key=lambda x: x[0])
+                                    best_lyrics = valid_candidates[0][1]
+                                    
+                                    if embed_lyrics: self._inject_metadata(file_path, best_lyrics)
+                                    if save_lrc: self._save_lrc_file(file_path, best_lyrics)
+                                    print_func(f"    ✅ Synchronized lyrics injected (LRCLIB Deep Search)!")
+                                    return
+
+                    if index < len(lyrics_sources) - 1:
+                        print_func(f"    ⏩ No valid results from LRCLIB. Falling back to {lyrics_sources[index + 1].upper()}...")
 
                 # --- GENIUS PROVIDER ---
                 elif source == 'genius':
@@ -186,8 +208,11 @@ class LyricsEngine:
                             if self._verify_match(artist, track, song.artist, song.title, is_parallel, print_func):
                                 if embed_lyrics: self._inject_metadata(file_path, song.lyrics)
                                 if save_lrc: self._save_lrc_file(file_path, song.lyrics)
-                                print_func(f"    ✅ Lyrics injected via Genius and saved!")
+                                print_func(f"    ✅ Standard lyrics injected via Genius and saved!")
                                 return
+                                
+                    if index < len(lyrics_sources) - 1:
+                        print_func(f"    ⏩ No valid results from GENIUS. Falling back to {lyrics_sources[index + 1].upper()}...")
 
             print_func(f"    ❌ No valid lyrics found for this track.")
 
