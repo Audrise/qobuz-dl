@@ -87,17 +87,29 @@ class LyricsEngine:
                     pass
 
             def _request_lrclib(url, params):
-                """Helper to manage HTTP 503 intermittent errors with automatic retry."""
-                headers = {"User-Agent": "qobuz-dl-ultimate/2.6.5 (https://github.com/Sei969/qobuz-dl)"}
-                for attempt in range(2):
+                """Helper to manage HTTP 503 intermittent errors with intelligent backoff and Retry-After handling."""
+                headers = {"User-Agent": "qobuz-dl-ultimate/2.6.6 (https://github.com/Sei969/qobuz-dl)"}
+                max_retries = 4
+                backoff_delays = [2, 4, 8]
+                
+                for attempt in range(max_retries):
                     try:
                         resp = requests.get(url, params=params, headers=headers, timeout=12)
                         if resp.status_code == 503:
-                            time.sleep(2)
+                            if attempt < max_retries - 1:
+                                # Check if the server explicitly tells us how long to wait
+                                retry_after = resp.headers.get("Retry-After")
+                                if retry_after and retry_after.isdigit():
+                                    wait_time = int(retry_after)
+                                else:
+                                    wait_time = backoff_delays[attempt]
+                                
+                                time.sleep(wait_time)
                             continue
                         return resp
                     except requests.exceptions.RequestException:
-                        time.sleep(2)
+                        if attempt < max_retries - 1:
+                            time.sleep(backoff_delays[attempt])
                 return None
 
             for index, source in enumerate(lyrics_sources):
