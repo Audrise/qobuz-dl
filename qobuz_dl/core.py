@@ -357,11 +357,101 @@ class QobuzDL:
                 self.settings.multiple_disc_one_dir = True
             # ------------------------------------------------
 
-            # Items handed to the downloader, in the order of the listing (for the .m3u)
-            queued_items = []
+            # --- FASE 1: Smart Reconciler & Blacklist ---
+            valid_items = []
+            for item in items:
+                # 1. Ultimate Smart Reconciler
+                if getattr(self, 'allowed_release_types', None) and url_type == "artist":
+                    try:
+                        r_type = "unknown"
+                        full_meta = None
+                        if hasattr(self.client, "get_album_meta"):
+                            full_meta = self.client.get_album_meta(item["id"])
+                        elif hasattr(self.client, "get_album"):
+                            full_meta = self.client.get_album(item["id"])
+                            
+                        if full_meta:
+                            r_type = (full_meta.get("release_type") or full_meta.get("product_type") or "unknown").lower()
+                            
+                        base_title = str(item.get("title", "")).lower()
+                        version_tag = str(item.get("version", "")).lower()
+                        t_count = item.get("tracks_count", 0)
+                        
+                        if "live" in version_tag or "(live" in base_title or "- live" in base_title:
+                            r_type = "live"
+                        elif any(kw in base_title or kw in version_tag for kw in ["best of", "greatest hits", "anthology", "collection", "compilation"]):
+                            r_type = "compilation"
+                        elif " ep" in base_title or version_tag == "ep":
+                            r_type = "ep"
+                        elif r_type == "single" and t_count >= 4:
+                            r_type = "ep"
+                        elif r_type in ["ep", "album"] and 1 <= t_count <= 3:
+                            r_type = "single"
+                        elif r_type == "unknown":
+                            if 1 <= t_count <= 3: r_type = "single"
+                            elif 4 <= t_count <= 6: r_type = "ep"
+                            else: r_type = "album"
 
-            # Use enumerate to get the track number in the playlist (1, 2, 3...)
-            for idx, item in enumerate(items, start=1):
+                        if r_type not in self.allowed_release_types:
+                            continue
+                    except Exception:
+                        pass
+                
+                # 2. Anti-Spam Blacklist Engine
+                if getattr(self, 'blacklist_patterns', None):
+                    base_title = item.get("title") or item.get("name") or ""
+                    version_tag = item.get("version") or ""
+                    display_name = f"{base_title} ({version_tag})" if version_tag else base_title
+                    display_lower = display_name.lower()
+                    
+                    is_blacklisted = any(re.search(rf"(?<!\w){re.escape(pattern)}(?!\w)", display_lower) for pattern in self.blacklist_patterns)
+                    if is_blacklisted:
+                        logger.info(f"{YELLOW}[!] Skipped (Blacklisted): {display_name}{OFF}")
+                        continue
+                        
+                valid_items.append(item)
+
+            # --- FASE 2: INTERACTIVE MENU ---
+            if getattr(self, '_is_interactive_session', False) and url_type == "artist" and valid_items:
+                import pick
+                import time
+                
+                options = ["==> [ DOWNLOAD ALL FILTERED RELEASES ] <=="]
+                for v_item in valid_items:
+                    t_title = v_item.get("title") or v_item.get("name") or "Unknown"
+                    t_ver = v_item.get("version")
+                    t_disp = f"{t_title} ({t_ver})" if t_ver else t_title
+                    t_year = str(v_item.get("release_date_original") or v_item.get("release_date") or "")[:4]
+                    options.append(f"{t_disp} [{t_year}]" if t_year else t_disp)
+                    
+                title_text = (
+                    f"Found {len(valid_items)} filtered releases for {content_name}.\n"
+                    "Select specific albums to download [Space to select, Enter to confirm]:"
+                )
+                
+                time.sleep(0.4)
+                
+                selected_albums_raw = pick.pick(options, title_text, multiselect=True, min_selection_count=1)
+                
+                selected_indices = [opt[1] for opt in selected_albums_raw]
+                
+                if 0 not in selected_indices:
+                    valid_items = [valid_items[i - 1] for i in selected_indices]
+                    logger.info(f"{YELLOW}[*] Proceeding with {len(valid_items)} manually selected releases.{OFF}")
+                else:
+                    logger.info(f"{YELLOW}[*] Proceeding with ALL {len(valid_items)} releases.{OFF}")
+
+            # --- FASE 3: DOWNLOAD QUEUE ---
+            queued_items = []
+            for idx, item in enumerate(valid_items, start=1):
+                queued_items.append(item)
+                self.download_from_id(
+                    item["id"],
+                    True if type_dict["iterable_key"] == "albums" else False,
+                    new_path,
+                    is_playlist=is_playlist,
+                    playlist_index=idx
+                )
 
                 # --- NEW: ULTIMATE SMART RECONCILER (LAZY + HEURISTIC) ---
                 if getattr(self, 'allowed_release_types', None) and url_type == "artist":

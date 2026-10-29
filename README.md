@@ -77,7 +77,7 @@ Qobuz-DL Ultimate allows deep customization of your library structure using vari
 Seamlessly bridge your mobile listening habits with your local offline library. Instead of manually copying URLs, launch the Interactive Mode (`fun`) to securely access your personal Qobuz account and browse your **Favorite Albums, Tracks, Artists, and Playlists** directly from the terminal.
 * **Zero-Typing Workflow:** Fetch your private library with a single click without ever leaving the terminal.
 * **Massive Batch Downloading:** Use the `Spacebar` to multi-select dozens of your favorite releases from the clean, minimalist UI and queue them all up for download in seconds.
-* **Smart Release Filter (Heuristic Engine):** When fetching an artist's discography, the engine runs a blazing-fast local heuristic algorithm to categorize releases (Albums, EPs, Singles, Live). It instantly presents a multi-select checkbox UI, allowing you to filter out unwanted singles or compilations before the download even begins, saving massive amounts of time and storage.
+* **Smart Release Filter & Cherry-Picking:** When fetching an artist's discography, the engine runs a blazing-fast local heuristic algorithm to categorize releases (Albums, EPs, Singles, Live). It presents a two-stage UI: first, filter out unwanted macro-categories (e.g., skip all Singles). Second, a cherry-picking menu allows you to multi-select specific titles by name and release year, letting you easily skip unwanted duplicates like "Deluxe" or "Remastered" editions before the download even begins, saving massive amounts of time and storage.
 
 ### 🌉 Last.fm Smart Integration & Interactive Mode
 Seamlessly bridge your Last.fm world with Qobuz. Download your personalized playlists and "Loved Tracks" with ease. 
@@ -332,8 +332,8 @@ Save multiple discs of a release in one single folder instead of splitting them.
 python -m qobuz_dl dl https://play.qobuz.com/artist/2038380 --multiple-disc-one-dir
 ```
 
-**Interactive Mode (Fun Mode) & Chronological Sorting:**
-Launch the interactive UI to browse the Qobuz catalog or your private Favorites directly from the terminal. Use `Space` to multi-select several albums to download at once.
+**Interactive Mode (Fun Mode) & Cherry-Picking:**
+Launch the interactive UI to browse the Qobuz catalog or your private Favorites directly from the terminal. When searching for Artists, the engine will prompt you to filter by release type, followed by a detailed cherry-picking menu to select exactly which specific albums or versions you want to download. Use `Space` to multi-select.
 *(Tip: Add the `-sd` or `--sort-date` flag to automatically sort Albums and Tracks by release date, from newest to oldest!)*
 ```bash
 python -m qobuz_dl fun -sd -l 10
