@@ -1,5 +1,5 @@
 # Download folders
-QobuzDownloads/
+Qobuz Downloads/
 
 # Python cache and virtual environments
 __pycache__/
@@ -26,3 +26,5 @@ dist/
 
 # User configuration and local testing files
 blacklist.txt
+token.json
+cli_args.txt
