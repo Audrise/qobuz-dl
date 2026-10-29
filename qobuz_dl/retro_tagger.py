@@ -54,10 +54,9 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                     if file.lower().endswith(".flac"):
                         audio = FLAC(file_path)
                         # Check if lyrics are already present
-                        if not getattr(settings, 'overwrite_lyrics', False):
-                            if audio.get("LYRICS") or audio.get("UNSYNCEDLYRICS"):
-                                skipped += 1
-                                continue
+                        if audio.get("LYRICS") or audio.get("UNSYNCEDLYRICS"):
+                            skipped += 1
+                            continue
                             
                         title = audio.get("TITLE", [""])[0]
                         album_artist = audio.get("ALBUMARTIST", [""])[0]
@@ -78,10 +77,9 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                             continue
                             
                         # Check if lyrics are already present (USLT = unsynced, SYLT = synced)
-                        if not getattr(settings, 'overwrite_lyrics', False):
-                            if audio.getall("USLT") or audio.getall("SYLT"):
-                                skipped += 1
-                                continue
+                        if audio.getall("USLT") or audio.getall("SYLT"):
+                            skipped += 1
+                            continue
                             
                         title = audio.get("TIT2").text[0] if audio.get("TIT2") else ""
                         artist = audio.get("TPE1").text[0] if audio.get("TPE1") else ""
@@ -114,8 +112,7 @@ def inject_lyrics_retroactively(directory_path, genius_token=None, settings=None
                             embed_lyrics=getattr(settings, 'embed_lyrics', True),
                             track_id=track_id,
                             qobuz_client=client,
-                            synced_only=getattr(settings, 'synced_lyrics_only', False),
-                            lyrics_sources=getattr(settings, 'lyrics_sources', None)
+                            synced_only=getattr(settings, 'synced_lyrics_only', False)
                         )
                         injected += 1
                             

@@ -742,12 +742,6 @@ class Download:
         genre_fmt = getattr(self, 'genre_tag_format', "")
         if genre_fmt:
             custom_tags["GENRE"] = fmt.format(genre_fmt, **filename_attr).strip()
-            
-        if not getattr(self, 'no_album_version_tag', False):
-            album_version = filename_attr.get("album_version")
-            
-            if album_version:
-                custom_tags["ALBUMVERSION"] = str(album_version).strip()
 
         # --- FIX MARROBHD & SYNC-PLAYLIST: CLEAN PLAYLIST NAMING ---
         legacy_flag = getattr(self.settings, 'legacy_charmap', False) if hasattr(self, 'settings') else False
@@ -804,7 +798,7 @@ class Download:
             os.makedirs(root_dir, exist_ok=True)
 
         filename = os.path.join(root_dir, f"~tmp_{tmp_count:02}.tmp")
-        track_title = _get_title(track_metadata)
+        track_title = track_metadata.get("title")
         track_no = str(track_metadata.get('track_number', 0)).zfill(2)
         desc = f"{track_no}. {track_title}"
 
@@ -896,8 +890,7 @@ class Download:
             performer_name = _safe_get(track_metadata, "performer", "name") or _safe_get(track_metadata, "artist", "name", default="Unknown")
             search_artist = performer_name if album_artist in [None, "Various Artists"] else album_artist
 
-            album_dict = track_metadata.get("album", {})
-            search_album = _get_title(album_dict) if album_dict else ""
+            search_album = _safe_get(track_metadata, "album", "title", default="")
             
             self.lyrics_engine.fetch_and_inject(
                 file_path=final_file, 
@@ -910,8 +903,7 @@ class Download:
                 embed_lyrics=getattr(self.settings, 'embed_lyrics', True),
                 is_parallel=is_parallel,
                 print_func=safe_print,
-                synced_only=self.synced_lyrics_only,
-                lyrics_sources=getattr(self.settings, 'lyrics_sources', None)
+                synced_only=self.synced_lyrics_only
             )
 
         delay_time = getattr(self.settings, 'delay', 0)

@@ -316,17 +316,6 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         help="do not embed lyrics into the audio file tags (save as .lrc/.txt only)",
     )
     custom_parser.add_argument(
-        "--overwrite-lyrics",
-        action="store_true",
-        help="force overwrite of existing lyrics in audio tags and .lrc files if a new valid match is found",
-    )
-    custom_parser.add_argument(
-        "--lyrics-sources",
-        type=str,
-        default=None,
-        help="comma-separated list of lyrics providers in order of preference (e.g. qobuz,lrclib,genius)",
-    )
-    custom_parser.add_argument(
         "--multi-tags",
         dest="multi_value_tags",
         action="store_true",
@@ -427,6 +416,21 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         "--no-composer-tag",
         action="store_true",
         help="don't add composer tag"
+    )
+    tag_group.add_argument(
+        "--no-conductor-tag",
+        action="store_true",
+        help="don't add conductor tag"
+    )
+    tag_group.add_argument(
+        "--no-ensemble-tag",
+        action="store_true",
+        help="don't add ensemble tag"
+    )
+    tag_group.add_argument(
+        "--no-work-tag",
+        action="store_true",
+        help="don't add classical work tag"
     )
     tag_group.add_argument(
         "--no-explicit-tag",
