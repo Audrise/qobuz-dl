@@ -294,13 +294,6 @@ FLAC_TAG_CASE = {
     "QOBUZ ALBUM URL": "QobuzAlbumURL",
 }
 
-def _is_valid_vorbis_field_name(name: str) -> bool:
-    """Return whether a Vorbis Comment field name uses valid printable ASCII."""
-    if not isinstance(name, str) or not name:
-        return False
-    return all(0x20 <= ord(char) <= 0x7D and char != "=" for char in name)
-
-
 def _capitalize_flac_tag_names(tags: dict) -> dict:
     """Apply consistent PascalCase-style names without changing tag values."""
     result = {}
@@ -344,7 +337,6 @@ def tag_flac(
         em_image (bool, optional): Flag to enable embedding the cover image. Defaults to False.
         settings (QobuzDLSettings, optional): Configuration object for user preferences. Defaults to None.
     """
-    settings = settings or QobuzDLSettings()
     audio = FLAC(filename)
 
     if istrack:
@@ -368,8 +360,6 @@ def tag_flac(
     if not settings.no_disc_total_tag:
         tags["TOTALDISCS"] = str(qobuz_album.get("media_count", "1"))
 
-    tags = _filter_disabled_tags(tags, settings)
-
     # Normalize all FLAC tag names to the selected Capitalize/PascalCase style.
     tags = _capitalize_flac_tag_names(tags)
 
@@ -391,17 +381,10 @@ def tag_flac(
     for k, v in tags.items():
         if v:
             # --- MULTI-TAG FEATURE ---
-            if getattr(settings, "multi_value_tags", False) and k.casefold() == "genre" and isinstance(v, str):
-                values = [value.strip() for value in re.split(r"\s*,\s*", v.strip()) if value.strip()]
-                if len(values) > 1:
-                    v = values
-
-            # Vorbis Comment field names must be printable ASCII and cannot contain '='.
-            # Reject an invalid field instead of letting one unusual credit abort tagging.
-            if not _is_valid_vorbis_field_name(k):
-                logger.warning("Skipping invalid FLAC metadata field name: %r", k)
-                continue
-
+            if getattr(settings, 'multi_value_tags', False) and k == "GENRE" and isinstance(v, str):
+                if ", " in v:
+                    v = v.split(", ")
+            
             audio[k] = v
 
     if em_image:
@@ -436,7 +419,6 @@ def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=Fal
         em_image (bool, optional): Flag to enable embedding the cover image. Defaults to False.
         settings (QobuzDLSettings, optional): Configuration object for user preferences. Defaults to None.
     """
-    settings = settings or QobuzDLSettings()
     try:
         audio = id3.ID3(filename)
     except ID3NoHeaderError:
@@ -453,7 +435,6 @@ def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=Fal
     
     if custom_tags:
         tags.update({k: v for k, v in custom_tags.items() if v})
-    tags = _filter_disabled_tags(tags, settings)
 
     existing_art = audio.getall("APIC") if not em_image else []
     audio.clear()  # Rebuild ID3 tags from the selected metadata fields.
@@ -527,77 +508,16 @@ def _parse_performer_credits(performers: str) -> dict:
         for role in roles:
             # Only accept role labels as tags; don't create empty or malformed keys.
             role = re.sub(r"\s+", " ", role).strip()
-            # Dynamic role names become FLAC Vorbis Comment field names too.
-            # '=' is forbidden there; reject malformed/control/non-ASCII labels
-            # before they can break the entire tagging operation.
-            if not role or len(role) > 80 or not _is_valid_vorbis_field_name(role):
-                logger.warning("Skipping invalid Qobuz credit role: %r", role)
+            if not role or len(role) > 80 or any(c in role for c in "\r\n\\/"):
                 continue
-
-            # Merge role labels case-insensitively while retaining the first
-            # spelling seen, so Producer and producer do not create two tags.
-            existing_role = next(
-                (key for key in credits if key.casefold() == role.casefold()),
-                role,
-            )
-            names = credits.setdefault(existing_role, [])
+            names = credits.setdefault(role, [])
             if name.casefold() not in (existing.casefold() for existing in names):
                 names.append(name)
     return credits
 
 
-def _tag_is_disabled(tag_name: str, settings: QobuzDLSettings) -> bool:
-    """Return whether a tag is disabled by the resolved settings."""
-    key = re.sub(r"[^a-z0-9]", "", str(tag_name).casefold())
-    flag_by_tag = {
-        "albumartist": "no_album_artist_tag",
-        "album": "no_album_title_tag",
-        "artist": "no_track_artist_tag",
-        "title": "no_track_title_tag",
-        "date": "no_release_date_tag",
-        "year": "no_release_date_tag",
-        "mediatype": "no_media_type_tag",
-        "genre": "no_genre_tag",
-        "tracknumber": "no_track_number_tag",
-        "tracktotal": "no_track_total_tag",
-        "totaltracks": "no_track_total_tag",
-        "discnumber": "no_disc_number_tag",
-        "disctotal": "no_disc_total_tag",
-        "totaldiscs": "no_disc_total_tag",
-        "composer": "no_composer_tag",
-        "composerlyricist": "no_composer_tag",
-        "conductor": "no_conductor_tag",
-        "ensemble": "no_ensemble_tag",
-        "work": "no_work_tag",
-        "rating": "no_explicit_tag",
-        "copyright": "no_copyright_tag",
-        "label": "no_label_tag",
-        "upc": "no_upc_tag",
-        "barcode": "no_upc_tag",
-        "isrc": "no_isrc_tag",
-        "replaygaintrackgain": "no_replaygain_tag",
-        "replaygaintrackpeak": "no_replaygain_tag",
-        "qobuzalbumurl": "no_album_url_tag",
-        "qobuzalbumurltag": "no_album_url_tag",
-    }
-    flag = flag_by_tag.get(key)
-    if flag and getattr(settings, flag, False):
-        return True
-
-    # Also cover common spellings used by dynamically parsed Qobuz credit roles.
-    if key in {"composerlyricist", "lyricistcomposer"} and getattr(settings, "no_composer_tag", False):
-        return True
-    return False
-
-
-def _filter_disabled_tags(tags: dict, settings: QobuzDLSettings) -> dict:
-    """Remove tags disabled in config.ini or through CLI-derived settings."""
-    return {key: value for key, value in tags.items() if not _tag_is_disabled(key, settings)}
-
-
 def _get_tags_to_add(qobuz_album: dict, qobuz_item: dict, settings: QobuzDLSettings = None):
     """Build the requested minimal Qobuz metadata profile."""
-    settings = settings or QobuzDLSettings()
     tags = {}
     if not qobuz_album or not qobuz_item:
         return tags
@@ -631,29 +551,15 @@ def _get_tags_to_add(qobuz_album: dict, qobuz_item: dict, settings: QobuzDLSetti
 
     # Parse every role supplied by Qobuz instead of relying on a fixed role list.
     credits = _parse_performer_credits(qobuz_item.get("performers") or "")
-    disabled_credit_roles = set()
-    if settings.no_composer_tag:
-        disabled_credit_roles.update({"composer", "composerlyricist", "lyricistcomposer"})
-    if settings.no_conductor_tag:
-        disabled_credit_roles.add("conductor")
-    if settings.no_ensemble_tag:
-        disabled_credit_roles.add("ensemble")
-    if settings.no_work_tag:
-        disabled_credit_roles.add("work")
-
     for role, names in credits.items():
-        role_key = re.sub(r"[^a-z0-9]", "", role.casefold())
         # ARTIST already represents the main artist; don't duplicate it as a role tag.
-        if role_key == "mainartist" or role_key in disabled_credit_roles:
+        if role.casefold() == "mainartist":
             continue
         tags[role] = ";".join(names)
 
-    # Prefer all performers explicitly marked as artists, including featured artists.
+    # ARTIST contains only the track's primary performer. Featured artists
+    # remain available in their own credit tags (for example, FeaturedArtist).
     if artist_names:
-        for role_name in ("MainArtist", "FeaturedArtist", "Artist"):
-            for name in credits.get(role_name, []):
-                if name.casefold() not in (artist.casefold() for artist in artist_names):
-                    artist_names.append(name)
         tags["ARTIST"] = ";".join(artist_names)
 
     # Track-level ReplayGain is optional; write only values supplied by Qobuz.
