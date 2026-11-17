@@ -282,8 +282,6 @@ FLAC_TAG_CASE = {
     "COPYRIGHT": "Copyright",
     "RATING": "Rating",
     "GENRE": "Genre",
-    "REPLAYGAIN_TRACK_GAIN": "ReplayGain_Track_Gain",
-    "REPLAYGAIN_TRACK_PEAK": "ReplayGain_Track_Peak",
     "ISRC": "ISRC",
     "UPC": "UPC",
     "LABEL": "Label",
@@ -292,6 +290,8 @@ FLAC_TAG_CASE = {
     "QOBUZTRACKID": "QobuzTrackID",
     "QOBUZALBUMID": "QobuzAlbumID",
     "QOBUZ ALBUM URL": "QobuzAlbumURL",
+    "REPLAYGAIN_TRACK_GAIN": "ReplayGain_Track_Gain",
+    "REPLAYGAIN_TRACK_PEAK": "ReplayGain_Track_Peak",
 }
 
 def _capitalize_flac_tag_names(tags: dict) -> dict:
