@@ -81,7 +81,7 @@ class LyricsEngine:
                     return
 
             lrclib_url = "https://lrclib.net/api/get"
-            headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Sei969/qobuz-dl)"}
+            headers = {"User-Agent": "qobuz-dl-ultimate/2.0 (https://github.com/Audrise/qobuz-dl)"}
             
             params = {"artist_name": artist, "track_name": track, "album_name": album}
             response = requests.get(lrclib_url, params=params, headers=headers, timeout=12) 

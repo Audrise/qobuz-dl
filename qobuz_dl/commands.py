@@ -383,11 +383,6 @@ def add_common_arg(custom_parser, default_folder, default_quality):
         help="don't add genre tag"
     )
     tag_group.add_argument(
-        "--no-replaygain-tag",
-        action="store_true",
-        help="Do not add ReplayGain tags to the audio files.",
-    )
-    tag_group.add_argument(
         "--no-album-url-tag",
         action="store_true",
         help="Do not add the QOBUZ ALBUM URL tag to the audio files.",
@@ -533,7 +528,7 @@ def qobuz_dl_args(
         prog="qobuz-dl",
         description=(
             "The ultimate Qobuz music downloader.\nSee usage"
-            " examples on https://github.com/Sei969/qobuz-dl"
+            " examples on https://github.com/Audrise/qobuz-dl"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )

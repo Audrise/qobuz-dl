@@ -56,7 +56,6 @@ class QobuzDLSettings:
         self.no_label_tag = kwargs.get('no_label_tag', False)
         self.no_upc_tag = kwargs.get('no_upc_tag', False)
         self.no_isrc_tag = kwargs.get('no_isrc_tag', False)
-        self.no_replaygain_tag = kwargs.get('no_replaygain_tag', False)
         self.no_album_url_tag = kwargs.get('no_album_url_tag', False)
         self.lrc_files = kwargs.get('lrc_files', True)
         self.embed_lyrics = kwargs.get('embed_lyrics', True)
@@ -178,7 +177,6 @@ class QobuzDLSettings:
             'no_label_tag': arguments.no_label_tag or config.getboolean(section, "no_label_tag", fallback=False),
             'no_upc_tag': arguments.no_upc_tag or config.getboolean(section, "no_upc_tag", fallback=False),
             'no_isrc_tag': arguments.no_isrc_tag or config.getboolean(section, "no_isrc_tag", fallback=False),
-            'no_replaygain_tag': getattr(arguments, 'no_replaygain_tag', False) or config.getboolean(section, "no_replaygain_tag", fallback=False),
             'no_album_url_tag': getattr(arguments, 'no_album_url_tag', False) or config.getboolean(section, "no_album_url_tag", fallback=False),
             
             # Add parallel download thread count configuration

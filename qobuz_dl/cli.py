@@ -257,7 +257,6 @@ def _reset_config(config_file):
     config["qobuz"]["no_conductor_tag"] = "false"
     config["qobuz"]["no_ensemble_tag"] = "false"
     config["qobuz"]["no_work_tag"] = "false"
-    config["qobuz"]["no_replaygain_tag"] = "false"
     config["qobuz"]["no_album_url_tag"] = "false"
     
     config["qobuz"]["no_explicit_tag"] = "false"
@@ -367,7 +366,7 @@ def check_for_updates():
     try:
         from qobuz_dl import __version__
         
-        url = "https://api.github.com/repos/Sei969/qobuz-dl/releases/latest"
+        url = "https://api.github.com/repos/Audrise/qobuz-dl/releases/latest"
         response = requests.get(url, timeout=2)
         response.raise_for_status()
         

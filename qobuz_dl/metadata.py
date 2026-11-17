@@ -282,8 +282,6 @@ FLAC_TAG_CASE = {
     "COPYRIGHT": "Copyright",
     "RATING": "Rating",
     "GENRE": "Genre",
-    "REPLAYGAIN_TRACK_GAIN": "ReplayGain_Track_Gain",
-    "REPLAYGAIN_TRACK_PEAK": "ReplayGain_Track_Peak",
     "ISRC": "ISRC",
     "UPC": "UPC",
     "LABEL": "Label",
@@ -323,8 +321,8 @@ def tag_flac(
     """
     Applies metadata tags and cover art to a FLAC audio file.
 
-    Supports advanced tagging features including multi-value tags, ReplayGain injections, 
-    and custom Qobuz IDs for local database synchronization. Renames the file to its 
+    Supports advanced tagging features including multi-value tags and custom Qobuz IDs
+    for local database synchronization. Renames the file to its
     final destination upon completion.
 
     Args:
@@ -370,7 +368,6 @@ def tag_flac(
         "Title", "Album", "Album_Artist", "Artist",
         "TrackNumber", "DiscNumber", "TotalTracks", "TotalDiscs",
         "Date", "Copyright", "Rating", "Genre",
-        "ReplayGain_Track_Gain", "ReplayGain_Track_Peak",
         "ISRC", "UPC", "Label",
     )
     ordered_tags = {key: tags[key] for key in preferred_order if key in tags}
@@ -454,16 +451,25 @@ def tag_mp3(filename, root_dir, final_name, d, album, istrack=True, em_image=Fal
         audio.add(id3.TXXX(encoding=3, desc="MusicBrainz Album Type", text=",".join(release_types)))
 
     for k, v in tags.items():
-        if v:
-            id3tag = ID3_LEGEND.get(k.lower()) or ID3_LEGEND.get(k)
-            if not id3tag and k not in {"RELEASETYPE"}:
-                # Qobuz may supply arbitrary credit-role names; store them as TXXX.
-                id3tag = id3.TXXX
-            if id3tag:
-                if id3tag == id3.TXXX:
-                    audio.add(id3tag(encoding=3, desc=k, text=v))
-                else:
-                    audio[id3tag.__name__] = id3tag(encoding=3, text=v)
+        if not v:
+            continue
+
+        # Resolve standard ID3 frames case-insensitively. Any metadata key
+        # without a dedicated ID3 frame (including newly introduced Qobuz
+        # performer roles) is preserved in a user-defined TXXX frame.
+        id3tag = ID3_LEGEND.get(k.lower()) or ID3_LEGEND.get(k)
+        if id3tag == id3.TXXX:
+            # Keep custom frame descriptions consistent with the PascalCase
+            # names used by the FLAC Vorbis-comment writer.
+            description = _capitalize_flac_tag_names({k: v})
+            description = next(iter(description))
+            audio.add(id3.TXXX(encoding=3, desc=description, text=v))
+        elif id3tag:
+            audio[id3tag.__name__] = id3tag(encoding=3, text=v)
+        elif k != "RELEASETYPE":
+            description = _capitalize_flac_tag_names({k: v})
+            description = next(iter(description))
+            audio.add(id3.TXXX(encoding=3, desc=description, text=v))
 
     # "number/total", following the same tag flags as tag_flac()
     if not settings.no_track_number_tag:
@@ -553,7 +559,8 @@ def _get_tags_to_add(qobuz_album: dict, qobuz_item: dict, settings: QobuzDLSetti
     credits = _parse_performer_credits(qobuz_item.get("performers") or "")
     for role, names in credits.items():
         # ARTIST already represents the main artist; don't duplicate it as a role tag.
-        if role.casefold() == "mainartist":
+        normalized_role = re.sub(r"[^a-z0-9]", "", role.casefold())
+        if normalized_role == "mainartist":
             continue
         tags[role] = ";".join(names)
 
@@ -561,17 +568,6 @@ def _get_tags_to_add(qobuz_album: dict, qobuz_item: dict, settings: QobuzDLSetti
     # remain available in their own credit tags (for example, FeaturedArtist).
     if artist_names:
         tags["ARTIST"] = ";".join(artist_names)
-
-    # Track-level ReplayGain is optional; write only values supplied by Qobuz.
-    if not getattr(settings, "no_replaygain_tag", False):
-        audio_info = qobuz_item.get("audio_info") or {}
-        rg_gain = audio_info.get("replaygain_track_gain")
-        rg_peak = audio_info.get("replaygain_track_peak")
-        if rg_gain is not None:
-            gain = str(rg_gain)
-            tags["REPLAYGAIN_TRACK_GAIN"] = gain if gain.lower().endswith("db") else f"{gain} dB"
-        if rg_peak is not None:
-            tags["REPLAYGAIN_TRACK_PEAK"] = str(rg_peak)
 
     if not settings.no_media_type_tag:
         tags["MEDIATYPE"] = (qobuz_album.get("product_type") or "").upper()
